@@ -55,7 +55,9 @@ The `resolve/main/...?...download=true` links point to direct checkpoint downloa
 
 ## License
 
-License information will be added before the first full public release. Until then, please treat this repository as a preview release for technical reference.
+This repository is released under the MIT License. See [LICENSE](LICENSE) for details.
+
+The dataset and model checkpoints are hosted on Hugging Face. Please refer to their corresponding Hugging Face pages for asset-specific license and usage notes.
 
 ## Acknowledgement
 
