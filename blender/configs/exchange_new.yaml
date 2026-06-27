@@ -1,0 +1,281 @@
+# ─── 合成数据配置 — 固定相机 + 物体变换模式 ─────────────────────────────────
+# 对应 Blender 文件: exchange_v2.0.blend
+# 驱动模块: scripts/pipeline_new/
+#
+# 与旧 exchange.yaml 的核心区别:
+#   旧: 相机在球面上移动, 物体不动
+#   新: 相机完全固定, 物体整体旋转+平移 (通过 Blender Empty 父级)
+#
+# 坐标系: Blender 世界坐标 (Z 向上), 单位 m
+# 场景范围: X[-0.22, 0.22], Y[-0.08, 0.49], Z[-0.09, 0.11]
+# 物体正面朝 -Y 方向
+
+# ══════════════════════════════════════════════════
+#  渲染引擎
+# ══════════════════════════════════════════════════
+render:
+  engine: CYCLES
+  device: GPU                # GPU=OptiX; CPU=纯CPU
+  width: 1280
+  height: 720
+  samples: 512
+  use_denoising: true
+  sensor_width_mm: 36.0
+
+# ══════════════════════════════════════════════════
+#  相机 (完全固定, 启动时设定一次, 之后每帧不变)
+# ══════════════════════════════════════════════════
+camera:
+  # 相机世界坐标 (m)
+  # 放在 -Y 方向 (物体正面) 看过来, 高度略高于物体中心
+  position: [0.0, -0.8, 0.05]
+
+  # 初始对准点 (仅用于计算相机朝向, 之后不变)
+  # 设为物体几何中心 (从 inspect_scene.py 输出)
+  look_at: [0.0, 0.205, 0.012]
+
+  # 水平视场角 (度)
+  # 60° 在 0.8m 处大约能看到 ±0.46m 宽度, 足以覆盖 0.45m 宽的 exchange
+  fov_h_deg: 60.0
+
+# ══════════════════════════════════════════════════
+#  物体变换 (每帧随机采样, 通过 Empty 整体变换所有 MESH)
+# ══════════════════════════════════════════════════
+object_transform:
+  # ── 旋转中心 ──
+  # 所有旋转绕此点进行; 取整体几何中心
+  pivot: [0.0, 0.205, 0.012]
+
+  # ── 旋转 (度) ──
+  # 外旋 Euler 顺序: 先 yaw(Z) → pitch(X) → roll(Y)
+  #
+  # yaw:   绕竖直 Z 轴旋转
+  #         正值 = 物体逆时针转 (从上方看)
+  #         效果: 物体左右转头, 露出侧面
+  #         [-180, 180] = 全方位; [-45, 45] = 只看正面±45°
+  # yaw_range: [-100.0, -30.0] #left
+  # yaw_range: [30.0, 60.0] #right
+  # yaw_range: [-30.0, 30.0] #front
+  yaw_range: [-100.0, 100.0] 
+
+  # pitch: 绕水平 X 轴旋转
+  #         正值 = 物体顶部远离相机 (前倾)
+  #         效果: 物体上下俯仰
+  pitch_range: [0.0, 180.0]
+
+  # roll:  绕视线方向 Y 轴旋转
+  #         正值 = 物体顺时针倾斜 (从相机看)
+  #         效果: 物体歪斜
+  roll_range: [-180.0, 180.0]
+
+  # ── 平移 ──
+  # distance: 物体中心 (pivot) 到相机的距离 (m)
+  #           沿相机视线方向 (camera→look_at) 平移物体
+  #           值越小 = 物体越近越大; 值越大 = 物体越远越小
+  distance_range: [0.5, 1.5]
+
+  # offset_x: 物体在画面中的水平偏移 (m)
+  #           沿相机右方向平移; 正值 = 物体偏右; 0 = 居中
+  offset_x_range: [-0.2, 0.2]
+
+  # offset_y: 物体在画面中的垂直偏移 (m)
+  #           沿相机上方向平移; 正值 = 物体偏上; 0 = 居中
+  offset_y_range: [-0.15, 0.15]
+
+  # ── 取景控制 ──
+  # max_retries: 取景检查失败后重采样次数
+  #              若所有重试都失败, 使用最后一次采样结果
+  max_retries: 50
+
+  # framing_margin: 所有关键点距画面边缘至少多少像素
+  #                 值越大 = 物体越居中, 但距离/角度范围被压缩
+  framing_margin: 20
+
+  # ── 装配柱上下滑动 (可选) ──
+  # 仅 pillar_* 对象在 Empty 局部空间中沿 Y 轴偏移, 模拟装配柱滑入/滑出
+  pillar_slide:
+    objects: ["pillar_*"]          # 匹配模式
+    target: "pillar"               # 关联 target 名 (关键点同步偏移)
+    skip_prob: 0.80                # 50% 概率保持原位
+    y_range: [0.0, 0.10]          # Y 轴滑动 0~100mm
+
+# ══════════════════════════════════════════════════
+#  灯光 (一次性设定, 不随帧变化)
+# ══════════════════════════════════════════════════
+lighting:
+  # 灯条颜色: red / blue / off / random
+  light_type: random
+  light_type_choices: [red, blue]  # random 时从这里采样; 想随机灭灯可加 off
+
+  # 灯条 Emission 强度 (柱灯 9 条; 值越大灯越亮)
+  strips_strength: 30.0
+
+  # 世界背景亮度 (模拟环境光; 0=全黑, 1=很亮)
+  ambient_strength: 0.5
+
+  # 世界背景色 RGB (各分量 0~1; [1,1,1]=纯白)
+  ambient_color: [1.0, 1.0, 1.0]
+
+  # 太阳灯能量 (0=关闭; >0 有定向光)
+  sun_energy: 0.0
+
+  # ── 独立灯条组: 仅单独控制这两个背部主灯 ──
+  # color: red / blue / off / random
+  strip_lights:
+    color: random
+    color_choices: [red, blue]     # random 时从这里采样; 亮灭仍由 on_prob 控制
+    # strength: 30.0
+    strength_range: [20.0, 40.0]   # 若配置则每张图在范围内随机采样
+    on_prob: 0.5                      # 每张图亮起概率; 未亮起时直接用 off
+    objects:
+      - back_main_light_1
+      - back_main_light_2
+
+  # ── 弧形灯条 / 顶部灯柱 (背部 36 条, 白色统一控制) ──
+  # 默认静态全亮/全灭.
+  # 若要闪烁:
+  #   blink: true
+  #   on_prob: 0.7          # 每帧亮起概率
+  #   per_object: true      # 每根灯条独立随机
+  #   min_on_count: 8       # 每帧至少亮 8 根
+  #   max_on_count: 20      # 每帧至多亮 20 根
+  arc_lights:
+    objects:
+      - back_light_bar_1
+      - back_light_bar_2
+      - back_light_bar_3
+      - back_light_bar_4
+      - back_light_bar_5
+      - back_light_bar_6
+      - back_light_bar_7
+      - back_light_bar_8
+      - back_light_bar_9
+      - back_light_bar_10
+      - back_light_bar_11
+      - back_light_bar_12
+      - back_light_bar_13
+      - back_light_bar_14
+      - back_light_bar_15
+      - back_light_bar_16
+      - back_light_bar_17
+      - back_light_bar_18
+      - back_light_bar_19
+      - back_light_bar_20
+      - back_light_bar_21
+      - back_light_bar_22
+      - back_light_bar_23
+      - back_light_bar_24
+      - back_light_bar_25
+      - back_light_bar_26
+      - back_light_bar_27
+      - back_light_bar_28
+      - back_light_bar_29
+      - back_light_bar_30
+      - back_light_bar_31
+      - back_light_bar_32
+      - back_light_bar_33
+      - back_light_bar_34
+      - back_light_bar_35
+      - back_light_bar_36
+    strength: 20.0              # Emission 强度 (白色)
+    off: false                 # true=全灭
+    blink: true               # true=每帧随机亮灭
+    on_prob: 0.8               # blink 时亮帧概率
+    per_object: true          # true=每根灯条独立亮灭; false=整组一起亮灭
+    min_on_count: 5           # per_object=true 时每帧至少亮几根
+    max_on_count: 35           # per_object=true 时每帧最多亮几根
+    color: random              # white / red / blue / off / random
+    color_choices: [red, blue] # random 时从这里采样; 亮灭仍由 blink/on_prob 控制
+    base_material: light_bar_red
+    off_material: light_bar_off
+    emission_node: "自发光"
+
+  # ── 辅助随机点光源 (模拟场馆环境光) ──
+  aux_lights:
+    count_range: [1, 3]        # 每帧灯数量 [最少, 最多]
+    dist: 5.0                  # 灯到 pivot 的距离 (m)
+    energy_range: [10.0, 1000.0]  # 灯能量范围 (W)
+
+  # ── Glare 光晕 (Compositor 后处理, 让灯条发光更真实) ──
+  glare:
+    glare_type: "FOG_GLOW"     # 均匀漫射光晕, 适合灯条
+    threshold: 0.0             # 亮度阈值 (0=所有亮区都发光)
+    # size: 4                    # 扩散半径 (越大光晕越柔和)
+    size_range: [2, 6]        # 若配置则每张图随机采样 size
+    mix: 0.5                   # 混合比例 (-1=纯原图, 0=50/50, 1=纯辉光)
+
+# ══════════════════════════════════════════════════
+#  目标标注 (关键点 + 分割)
+# ══════════════════════════════════════════════════
+#
+# 每个 target 独立生成 bbox 和关键点标注
+# pass_index: Object Index Pass 整数 (必须唯一, 从 1 开始)
+# mesh_objects: Blender 中的 MESH 对象名, 支持 * 通配符
+# keypoints: {name: [x,y,z]} 初始世界坐标 (会被 object_transform 变换)
+# min_visible: 该 target 至少多少个关键点 vis=2 才算有效帧
+
+targets:
+  - name: "pillar"
+    pass_index: 1
+    mesh_objects:
+      include:
+        - "pillar_*"
+      exclude:
+        - "pillar_slide"
+    keypoints:
+      TL:   [-0.040,  0.040, 0.012]
+      TR:   [ 0.040,  0.040, 0.012]
+      BL:   [-0.040, -0.040, 0.012]
+      BR:   [ 0.040, -0.040, 0.012]
+      ring: [ 0.000,  0.000, 0.112]
+    min_visible: 2
+
+  - name: "exchange"
+    pass_index: 2
+    mesh_objects:
+      include:
+        - "*"
+    bbox_from_targets:
+      - "pillar"
+      - "exchange"
+    keypoints:
+      light_BR: [ 0.114870, 0.035953, 0.0]
+      light_TR: [ 0.114870, 0.167312, 0.0]
+      shell_R:  [ 0.084871, 0.276449, 0.0]
+      shell_M:  [ 0.000000, 0.325449, 0.0]
+      shell_L:  [-0.084871, 0.276449, 0.0]
+      light_TL: [-0.114870, 0.167312, 0.0]
+      light_BL: [-0.114870, 0.035953, 0.0]
+    min_visible: 4
+
+# ══════════════════════════════════════════════════
+#  场景固定参数 (与 .blend 绑定)
+# ══════════════════════════════════════════════════
+scene:
+  sun_object: "日光"
+  emission_node: "自发光"
+
+  light_objects:
+    - pillar_L_light_1
+    - pillar_L_light_2
+    - pillar_L_light_3
+    - pillar_L_light_4
+    - pillar_L_light_5
+    - pillar_L_light_6
+    - pillar_side_light_1
+    - pillar_side_light_2
+    - pillar_side_light_3
+
+  material_map:
+    blue: light_bar_blue
+    red:  light_bar_red
+    "off": light_bar_off
+
+# ══════════════════════════════════════════════════
+#  遮挡检测
+# ══════════════════════════════════════════════════
+occlusion_offset_m: 0.001       # ray 起点偏移 (m), 防止自交
+
+min_visible:
+  pillar: 3                     # pillar 关键点至少 vis=2 的个数
+  exchange: 4                   # exchange 关键点至少 vis=2 的个数

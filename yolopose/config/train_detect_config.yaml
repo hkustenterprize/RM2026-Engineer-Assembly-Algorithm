@@ -1,0 +1,274 @@
+# model can be a pretrained weight, official YAML (e.g. yolo26s.yaml/yolo26s-p6.yaml),
+# or a custom Ultralytics model YAML path.
+model: yolo26s.pt
+data: /data/datasets/zguobd/RM2026-Engineer-Host/cv/nn/dataset_v9.1_v9.2_detect/dataset.yaml
+resume:
+export_openvino: false
+
+train:
+  epochs: 500
+  batch: 66
+  imgsz: 640
+  device: "0"
+  workers: 4
+  project: /data/datasets/zguobd/RM2026-Engineer-Host/cv/nn/yolopose/runs/detect
+  name: yolo26s_det_v9.1_v9.2
+  lr0: 0.005
+  patience: 1000
+  optimizer: MuSGD
+  save_period: 50
+  plots: true
+  verbose: true
+
+yolo_aug:
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.0
+  degrees: 0.0
+  translate: 0.08
+  scale: 0.0
+  shear: 0.0
+  bgr: 0.3
+  perspective: 0.0003
+  flipud: 0.0
+  fliplr: 0.3
+  mosaic: 0.0
+  mixup: 0.2
+  cutmix: 0.0
+  copy_paste: 0.0
+  erasing: 0.2
+
+detect_loss:
+  box: 7.5
+  cls: 0.5
+  dfl: 1.5
+
+random_crop:
+  enabled: true
+  p: 0.35  # used only when crop_oneof.enabled=false
+  scale: [0.65, 1.0]
+  min_bbox_area_ratio: 0.03
+
+crop_oneof:
+  enabled: true
+  p: 0.45  # total crop probability; selects at most one crop transform
+  weights:
+    random_crop: 0.55
+    box_crop: 0.45
+
+box_crop:
+  enabled: true
+  p: 0.2  # used only when crop_oneof.enabled=false
+  target_classes: [1]  # 1 = exchange; [] means all classes
+  crop_scale: [1.4, 3.2]
+  center_jitter: 0.15
+  min_bbox_area_ratio: 0.05
+  min_crop_size_ratio: 0.25
+
+random_mask:
+  enabled: true
+  p: 0.1
+  holes: [1, 3]
+  height: [0.04, 0.2]
+  width: [0.04, 0.2]
+  fill: 0
+  random_fill_p: 0.2
+  max_bbox_overlap: 0.4  # max mask overlap area / bbox area
+  max_attempts: 20
+
+albumentations:
+  enabled: true
+  # OneOf groups reduce CPU cost: each group can apply at most one transform.
+  # Individual transform *_p values below are used as weights inside each group.
+  oneof_groups:
+    - name: exposure_tone
+      p: 0.35
+      transforms:
+        - RandomBrightnessContrast
+        - RandomGamma
+        - CLAHE
+        - RandomToneCurve
+        - AutoContrast
+        - Equalize
+    - name: color_white_balance
+      p: 0.30
+      transforms:
+        - PlanckianJitter
+        - HueSaturationValue
+        - ColorJitter
+        - RGBShift
+        - ChannelShuffle
+    - name: sensor_noise
+      p: 0.25
+      transforms:
+        - GaussNoise
+        - ISONoise
+        - ShotNoise
+        - SaltAndPepper
+        - MultiplicativeNoise
+    - name: video_artifact
+      p: 0.20
+      transforms:
+        - ImageCompression
+        - Downscale
+        - RingingOvershoot
+        - Posterize
+    - name: focus_edge
+      p: 0.18
+      transforms:
+        - GaussianBlur
+        - MotionBlur
+        - MedianBlur
+        - AdvancedBlur
+        - Defocus
+        - Sharpen
+        - UnsharpMask
+        - ChromaticAberration
+    - name: lighting_scene
+      p: 0.12
+      transforms:
+        - RandomShadow
+        - PlasmaShadow
+        - RandomFog
+
+  gaussian_blur_p: 0.1
+  gaussian_blur_limit: [3, 5]
+
+  motion_blur_p: 0.1
+  motion_blur_limit: 5
+
+  median_blur_p: 0.1
+  median_blur_limit: 3
+
+  advanced_blur_p: 0.1
+  advanced_blur_limit: [3, 5]
+  advanced_blur_sigma_x_limit: [0.2, 1.0]
+  advanced_blur_sigma_y_limit: [0.2, 1.0]
+  advanced_blur_rotate_limit: [-90, 90]
+  advanced_blur_beta_limit: [0.8, 4.0]
+  advanced_blur_noise_limit: [0.95, 1.05]
+
+  defocus_p: 0.1
+  defocus_radius: [3, 8]
+  defocus_alias_blur: [0.1, 0.3]
+
+  chromatic_aberration_p: 0.1
+  chromatic_primary_distortion_limit: [-0.01, 0.01]
+  chromatic_secondary_distortion_limit: [-0.02, 0.02]
+  chromatic_mode: red_blue
+
+  shadow_p: 0.12
+  shadow_num_shadows: [1, 3]
+
+  plasma_shadow_p: 0.08
+  plasma_shadow_intensity_range: [0.2, 0.45]
+  plasma_shadow_size: 256
+  plasma_shadow_roughness: 2.5
+
+  brightness_contrast_p: 0.35
+  brightness_limit: [-0.35, 0.35]
+  contrast_limit: [-0.3, 0.3]
+
+  autocontrast_p: 0.08
+  autocontrast_cutoff: 0.0
+  autocontrast_method: cdf
+
+  equalize_p: 0.1
+  equalize_mode: cv
+  equalize_by_channels: true
+
+  downscale_p: 0.18
+  downscale_range: [0.4, 0.95]
+
+  fog_p: 0.05
+  fog_coef_range: [0.05, 0.25]
+
+  clahe_p: 0.1
+  clahe_clip_limit: [1.0, 3.0]
+  clahe_grid: [8, 8]
+
+  gamma_p: 0.25
+  gamma_limit: [75, 130]
+
+  planckian_jitter_p: 0.3
+  planckian_mode: blackbody
+  planckian_temperature_limit: [3000, 15000]
+  planckian_sampling_method: uniform
+
+  tone_curve_p: 0.12
+  tone_curve_scale: 0.15
+  tone_curve_per_channel: false
+
+  color_jitter_p: 0.12
+  color_jitter_brightness: 0.12
+  color_jitter_contrast: 0.12
+  color_jitter_saturation: 0.12
+  color_jitter_hue: 0.04
+
+  hsv_p: 0.25
+  hsv_hue_shift_limit: 15
+  hsv_sat_shift_limit: 30
+  hsv_val_shift_limit: 30
+
+  rgb_shift_p: 0.08
+  rgb_shift_limit: [8, 8, 8]
+
+  channel_shuffle_p: 0.02
+
+  gauss_noise_p: 0.2
+  gauss_noise_var_limit: [8.0, 40.0]
+  gauss_noise_mean: 0.0
+
+  iso_noise_p: 0.18
+  iso_noise_color_shift: [0.01, 0.04]
+  iso_noise_intensity: [0.08, 0.35]
+
+  shot_noise_p: 0.12
+  shot_noise_scale_range: [0.06, 0.22]
+
+  salt_pepper_p: 0.04
+  salt_pepper_amount: [0.002, 0.015]
+  salt_pepper_salt_vs_pepper: [0.4, 0.6]
+
+  multiplicative_noise_p: 0.08
+  multiplicative_noise_multiplier: [0.95, 1.05]
+  multiplicative_noise_per_channel: false
+  multiplicative_noise_elementwise: false
+
+  coarse_dropout_p: 0.0
+  coarse_dropout_holes: [1, 2]
+  coarse_dropout_height: [0.2, 0.4]
+  coarse_dropout_width: [0.2, 0.4]
+  coarse_dropout_fill: 0
+
+  pixel_dropout_p: 0.0
+  pixel_dropout_prob: 0.01
+  pixel_dropout_per_channel: true
+
+  grid_dropout_p: 0.0
+  grid_dropout_ratio: 0.3
+  grid_dropout_unit_size: [10, 80]
+
+  channel_dropout_p: 0.05
+  channel_drop_range: [1, 1]
+  channel_drop_fill: 0
+
+  image_compression_p: 0.25
+  image_compression_quality: [25, 85]
+
+  ringing_overshoot_p: 0.12
+  ringing_blur_limit: [7, 13]
+  ringing_cutoff: [0.8, 1.5]
+
+  posterize_p: 0.05
+  posterize_num_bits: 6
+
+  sharpen_p: 0.08
+  sharpen_alpha: [0.1, 0.3]
+  sharpen_lightness: [0.7, 1.2]
+
+  unsharp_mask_p: 0.08
+  unsharp_mask_blur_limit: [3, 5]
+  unsharp_mask_sigma_limit: [0.2, 1.0]
+  unsharp_mask_alpha: [0.1, 0.3]
+  unsharp_mask_threshold: 10
