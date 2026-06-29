@@ -4,7 +4,7 @@ custom_imports = dict(imports=["pillar_models"], allow_failed_imports=False)
 
 data_root = "/data/datasets/zguobd/RM2026-Engineer-Host/cv/nn/dataset_v11.0/"
 ann_root = "/data/datasets/zguobd/RM2026-Engineer-Host/cv/nn/dataset_v11.0_annotations/"
-load_from = "/data/datasets/zguobd/RM2026-Engineer-Host/cv/nn/hrnet/runs/td-hm_litehrnet18_exchange12_v11.0/best_coco_AP_epoch_22.pth"
+load_from = "/data/datasets/zguobd/RM2026-Engineer-Host/cv/nn/hrnet/runs/td-hm_litehrnet30_exchange12_v11.0/best_coco_AP_epoch_80.pth"
 
 max_epochs = 150
 train_cfg = dict(max_epochs=max_epochs, val_interval=2)
@@ -22,7 +22,7 @@ custom_hooks = [
 ]
 
 base_lr = 1e-3
-batch_size = 160
+batch_size = 32
 auto_scale_lr = dict(base_batch_size=batch_size * 4)
 optim_wrapper = dict(
     type="OptimWrapper",
@@ -64,8 +64,7 @@ model = dict(
             stem=dict(stem_channels=32, out_channels=32, expand_ratio=1),
             num_stages=3,
             stages_spec=dict(
-                # Official LiteHRNet-18 depth. LiteHRNet-30 uses (3, 8, 3).
-                num_modules=(2, 4, 2),
+                num_modules=(3, 8, 3),
                 num_branches=(2, 3, 4),
                 num_blocks=(2, 2, 2),
                 module_type=("LITE", "LITE", "LITE"),
@@ -80,26 +79,18 @@ model = dict(
         type="PillarHeatmapHeadWithVis",
         in_channels=40,
         out_channels=12,
-        # Keep 128x128 heatmaps with one 2x upsampling layer, but avoid the
-        # older heavy 40->256 channel expansion used by SimpleBaseline-style heads.
         deconv_out_channels=(40,),
         deconv_kernel_sizes=(4,),
         loss=dict(type="KeypointMSELoss", use_target_weight=False),
         decoder=codec,
         use_vis=True,
         vis_label_mode="in_frame",
-        vis_loss=dict(type="BCELoss", use_target_weight=False, use_sigmoid=True, loss_weight=0.0001),
-        geo_kpt_indices=(0, 1, 2, 3, 4),
-        # geo_loss=dict(
-        #     type="GeometricConsistencyLoss",
-        #     aspect_ratio=1.0,
-        #     input_size=256,
-        #     heatmap_size=128,
-        #     hom_weight=0.005,
-        #     chiral_weight=0.001,
-        #     chiral_margin=0.0,
-        # ),
-        geo_loss=None
+        vis_loss=dict(
+            type="BCELoss",
+            use_target_weight=False,
+            use_sigmoid=True,
+            loss_weight=0.0001,
+        ),
     ),
     test_cfg=dict(flip_test=True, flip_mode="heatmap", shift_heatmap=True, use_dark=True),
 )
