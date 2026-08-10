@@ -1,141 +1,148 @@
-# HRNet / LiteHRNet Keypoint Pipeline
+# LiteHRNet 12-Keypoint Pipeline
 
-装配站 12 点关键点训练与推理，基于 **MMPose** 的 top-down heatmap 流程。
+该目录包含装配目标 12 点关键点模型的数据转换、训练、推理与 OpenVINO 导出工具。训练和推理采用
+MMPose 的 top-down heatmap 流程：YOLO 先给出目标框，LiteHRNet 再在目标区域内预测关键点。
 
-当前公开主线只保留两条训练配置：
+公开主线只保留两组配置：
 
 - `td-hm_litehrnet18_exchange12_v11.0.py`
 - `td-hm_litehrnet30_exchange12_v11.0.py`
 
-两条配置都对应同一个任务定义：
-
-- 输入：YOLO 检测框裁剪后的 `256x256` 图像块
-- 输出：12 个关键点热力图
-- 附加分支：每个关键点的 `in-frame` 可见性分类
-
-非主线实验配置、旧 RTMPose / RTMO 路线和几何损失相关文件已移到 `experimental/`。
+两者使用相同的 12 点定义和 `256x256` 网络输入，区别仅在 LiteHRNet 主干深度。模型输出关键点热力图，
+并通过附加分支预测各关键点是否位于图像内。
 
 ## Directory Layout
 
 ```text
 hrnet/
-├── data_process/
-│   ├── prepare_data_new.py
-│   └── viz_data.py
-├── model_configs/
-│   ├── td-hm_litehrnet18_exchange12_v11.0.py
-│   └── td-hm_litehrnet30_exchange12_v11.0.py
-├── scripts/
-│   ├── prepare_data.sh
-│   ├── train_litehrnet.sh
-│   ├── inference.sh
-│   ├── inference_video.sh
-│   └── vis_data.sh
-├── train/
-│   ├── pillar_models.py
-│   ├── inference.py
-│   └── inference_video.py
-├── export_hrnet_openvino.py
-└── experimental/
+├── configs/                  # 两组公开训练配置
+├── custom/
+│   └── visibility_head.py    # 带可见性分支的 heatmap head
+├── data/
+│   ├── convert_yolo_to_coco.py
+│   └── visualize_dataset.py
+├── scripts/                  # 常用命令的薄封装
+├── tools/
+│   ├── train.py              # 基于 MMEngine Runner 的训练入口
+│   ├── infer.py              # 图片与视频共用的推理入口
+│   ├── export_openvino.py
+│   └── check_environment.py
+├── pyproject.toml            # uv 依赖定义
+├── uv.lock                   # 经验证的依赖锁
+└── experimental/             # 非主线实验与历史实现
 ```
 
-## Data Preparation
+`experimental/` 中的文件用于保留实验过程，不属于公开主线，也不保证与当前精简接口兼容。
 
-`prepare_data_new.py` 将 YOLOPose 风格数据集转换为 MMPose 使用的 COCO keypoint JSON。
+## Environment
 
-输入目录约定：
+训练、推理与导出使用独立的 uv 环境。当前锁文件固定 Python 3.10、NumPy 2.2、PyTorch CUDA 13.0
+以及与两组配置兼容的 OpenMMLab 依赖。首次安装运行：
+
+```bash
+bash scripts/setup_env.sh
+```
+
+安装脚本先同步普通依赖，再编译 MMCV 的 CPU 扩展。LiteHRNet 和 Ultralytics YOLO 的 GPU 计算由
+PyTorch wheel 自带的 CUDA 运行时执行；当前主线不调用 MMCV CUDA 算子，因此安装过程不要求本机提供
+CUDA Toolkit。由于 PyPI 发布的 `xtcocotools` wheel 仍使用 NumPy 1.x ABI，脚本还会在当前 NumPy 2.2
+环境中从源码重编译该扩展。安装结束后会加载两份配置并构建模型和数据增强组件，以检查环境完整性。
+
+因此，首次创建环境或删除 `.venv` 后应运行 `bash scripts/setup_env.sh`，不能只运行一次普通的
+`uv sync`。环境建立完成后，可以正常使用 `uv run`；锁文件未变化时无需重复编译上述扩展。
+
+日常 Python 命令通过 uv 运行：
+
+```bash
+uv run python tools/check_environment.py
+```
+
+## Data Conversion
+
+源数据采用 YOLO pose 目录结构：
 
 ```text
 dataset_root/
-├── images/
-│   ├── train/
-│   └── val/
-└── labels/
-    ├── train/
-    └── val/
+├── images/{train,val}/
+└── labels/{train,val}/
 ```
 
-当前主线使用：
-
-- `--mode exchange12`
-- pillar 行与 exchange 行成对组合成 12 点监督
-- 保留 `keypoints_raw_visibility` 与 `keypoints_in_frame` 字段
-
-示例：
+转换脚本将标签整理为 MMPose 使用的 COCO keypoint JSON，并保留关键点原始可见性和 in-frame 标记：
 
 ```bash
-python data_process/prepare_data_new.py /path/to/yolo_pose_dataset \
-  --output /path/to/exchange12_annotations \
-  --mode exchange12
+uv run python data/convert_yolo_to_coco.py DATASET_ROOT \
+  --output ANNOTATION_DIR
 ```
+
+也可以通过薄封装运行：
+
+```bash
+DATASET_ROOT=/absolute/path/to/dataset \
+OUTPUT_DIR=/absolute/path/to/annotations \
+bash scripts/convert_dataset.sh
+```
+
+`data/visualize_dataset.py` 可用于抽查转换后的 COCO 标注或原始 YOLO pose 标签，具体参数见
+`uv run python data/visualize_dataset.py --help`。
 
 ## Training
 
-训练依赖：
-
-- `mmpose`
-- `mmengine`
-- `mmcv`
-- `torch`
-- `albumentations`
-
-需要把 `train/` 加入 `PYTHONPATH`，让 MMPose 能注册 `PillarHeatmapHeadWithVis`：
+数据集和标注路径通过环境变量传入，因此配置文件不依赖开发机器上的目录：
 
 ```bash
-export PYTHONPATH="$(pwd)/train:/path/to/mmpose:${PYTHONPATH}"
-```
+export HRNET_DATA_ROOT=/absolute/path/to/dataset
+export HRNET_ANN_ROOT=/absolute/path/to/annotations
 
-训练入口：
-
-```bash
 bash scripts/train_litehrnet.sh td-hm_litehrnet18_exchange12_v11.0.py
 bash scripts/train_litehrnet.sh td-hm_litehrnet30_exchange12_v11.0.py
 ```
 
+训练输出默认写入 `runs/<config-name>/`。第二个位置参数可以覆盖输出目录。需要加载初始权重时，设置
+`HRNET_LOAD_FROM`；不设置时从随机初始化开始训练。
+
+训练前可检查随机增强后的样本：
+
+```bash
+bash scripts/preview_augmentations.sh td-hm_litehrnet18_exchange12_v11.0.py
+```
+
 ## Inference
 
-公开主线只保留两阶段推理：
+图片和视频共用 [tools/infer.py](tools/infer.py)，两个 shell 脚本只负责组织参数。运行前设置检测模型与
+关键点模型权重：
 
-1. YOLO 检测模型输出装配站框
-2. LiteHRNet 在裁剪块上回归 12 个关键点
+```bash
+export YOLO_WEIGHTS=/absolute/path/to/yolo_detect.pt
+export HRNET_CHECKPOINT=/absolute/path/to/litehrnet.pth
+```
 
 图片推理：
 
 ```bash
-bash scripts/inference.sh image1.jpg image2.jpg
+bash scripts/infer_images.sh image_1.jpg image_2.jpg
 ```
 
 视频推理：
 
 ```bash
-SOURCE=/path/to/input.mp4 OUTPUT=/path/to/output.mp4 \
-bash scripts/inference_video.sh
+SOURCE=input.mp4 OUTPUT=output.mp4 bash scripts/infer_video.sh
 ```
 
-默认情况下，`bbox_class_id=1`，对应 exchange bbox。
+`YOLO_WEIGHTS` 可指向 PyTorch、ONNX 等单文件权重，也可指向包含 `.xml`、`.bin` 和
+`metadata.yaml` 的 Ultralytics OpenVINO 模型目录。默认使用
+`configs/td-hm_litehrnet18_exchange12_v11.0.py`、检测类别 `1`，检测器运行于 CPU，LiteHRNet 运行于
+`cuda:0`。可分别通过 `HRNET_CONFIG`、`BBOX_CLASS_ID`、`DETECTOR_DEVICE` 与 `DEVICE` 覆盖。
 
 ## OpenVINO Export
 
-`export_hrnet_openvino.py` 保留为主线工具，用于导出 heatmap 子图：
+导出工具先生成 ONNX，再转换为 OpenVINO IR：
 
 ```bash
-python export_hrnet_openvino.py \
-  --config model_configs/td-hm_litehrnet18_exchange12_v11.0.py \
-  --checkpoint /path/to/best.pth \
-  --output-dir /path/to/openvino_out
+uv run python tools/export_openvino.py \
+  --config configs/td-hm_litehrnet30_exchange12_v11.0.py \
+  --checkpoint checkpoints/litehrnet30_best.pth \
+  --output-dir exports/litehrnet30
 ```
 
-导出的 IR 只包含：
-
-- `RGB patch -> heatmaps`
-
-以下部分仍在宿主侧处理：
-
-- YOLO 检测框
-- top-down 裁剪与仿射变换
-- heatmap 解码与坐标还原
-
-## Notes
-
-- 两条主线配置目前仍保留原始训练路径占位，需要按你的本地数据目录修改 `data_root`、`ann_root` 和 `load_from`。
-- 如果只需要公开最小训练配置，下一步可以继续把两个 config 中与本地路径强耦合的字段改为更中性的占位路径。
+导出模型只包含归一化图像块到关键点热力图的网络计算。YOLO 检测、top-down 裁剪、热力图解码和原图
+坐标还原仍由宿主程序完成。

@@ -128,18 +128,3 @@ print(f"  yaml   {yaml.__version__}")
 print(f"  numpy  {np.__version__}")
 print("  ✓ 所有依赖验证通过")
 EOF
-
-echo ""
-info "========================================================"
-info " Blender ${BLENDER_VERSION} 安装完成!"
-info ""
-info " 可执行文件: ${BLENDER_BIN}"
-info ""
-info " 使用示例 (合成数据渲染):"
-info "   cd cv/nn/blender"
-info "   conda run -n mujoco-sim python scripts/render_parallel.py \\"
-info "     --blender '${BLENDER_BIN}' \\"
-info "     --n_images 100 --output_dir ./dataset --n_workers 4"
-info ""
-warn " 请重新打开终端或运行 'source ~/.bashrc' 使 PATH 生效"
-info "========================================================"

@@ -1,0 +1,68 @@
+[project]
+name = "rm26-exchange-litehrnet"
+version = "0.1.0"
+description = "LiteHRNet training and inference for RM2026 exchange keypoints"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "albumentations==2.0.8",
+    "mmdet==3.2.0",
+    "mmcv==2.1.0",
+    "mmengine==0.10.7",
+    "mmpose==1.3.2",
+    "ninja>=1.11",
+    "numpy==2.2.6",
+    "opencv-python==4.11.0.86",
+    "opencv-python-headless==4.11.0.86",
+    "pip>=24",
+    "setuptools>=69,<81",
+    "tensorboard>=2.15",
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "ultralytics==8.4.46",
+    "wheel>=0.43",
+    "xtcocotools==1.14.3",
+]
+
+[project.optional-dependencies]
+export = [
+    "onnx>=1.17",
+    "onnxruntime==1.23.2",
+    "onnxscript>=0.5",
+    "openvino==2025.4.1",
+]
+
+[[tool.uv.index]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu130" }
+torchvision = { index = "pytorch-cu130" }
+
+[tool.uv]
+package = false
+
+[[tool.uv.dependency-metadata]]
+name = "chumpy"
+version = "0.70"
+requires-dist = ["scipy>=0.13.0", "six>=1.11.0"]
+
+[[tool.uv.dependency-metadata]]
+name = "mmcv"
+version = "2.1.0"
+requires-dist = [
+    "addict",
+    "mmengine>=0.3.0",
+    "numpy",
+    "packaging",
+    "Pillow",
+    "pyyaml",
+    "regex; sys_platform == 'win32'",
+    "yapf",
+]

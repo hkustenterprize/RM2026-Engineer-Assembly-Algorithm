@@ -1,0 +1,7 @@
+# Expected local layout after converting the pose dataset with pose_to_detect_dataset.py.
+train: ../datasets/exchange_detect/images/train
+val: ../datasets/exchange_detect/images/val
+
+names:
+  0: pillar
+  1: exchange

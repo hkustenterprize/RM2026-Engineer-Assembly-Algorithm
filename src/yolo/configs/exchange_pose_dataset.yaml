@@ -1,0 +1,24 @@
+# Expected local layout after downloading the pose dataset.
+train: ../datasets/exchange_pose/images/train
+val: ../datasets/exchange_pose/images/val
+
+kpt_shape: [12, 3]
+flip_idx: [1, 0, 3, 2, 4, 11, 10, 9, 8, 7, 6, 5]
+
+names:
+  0: pillar
+  1: exchange
+
+kpt_names:
+  0: TL
+  1: TR
+  2: BL
+  3: BR
+  4: ring
+  5: light_BR
+  6: light_TR
+  7: shell_R
+  8: shell_M
+  9: shell_L
+  10: light_TL
+  11: light_BL

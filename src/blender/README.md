@@ -1,144 +1,110 @@
 # Blender 合成数据生成
 
-使用 **Blender 4.5 + Cycles** 生成装配柱 + 兑换站合成图与标注，输出供 `compose_dataset.py` 合成 YOLO 数据集。
-
-当前管线：**`pipeline_new`**（固定相机 + 物体变换）。旧版移动相机管线在 `scripts/pipeline/`（已弃用）。
-
----
+本目录负责从 Blender 场景生成带几何标注的目标素材，并将素材合成为 YOLO Pose 数据集。Blender 场景文件不随代码仓库发布，需要在本地准备对应的 `.blend` 文件。
 
 ## 目录结构
 
-```
+```text
 blender/
-├── exchange_removed.blend      # 当前主力场景
 ├── configs/
-│   └── exchange_new.yaml       # pipeline_new 配置
-├── pipeline_new/               # 当前渲染管线
-│   ├── render_dataset_new.py   # 主驱动
-│   ├── render_new.sh           # 启动模板
-│   ├── ops.py / context.py / utils.py
-│   └── visualize_keypoints.py
-├── docs/
-│   └── exchange_config.md      # 旧 exchange.yaml 配置说明
-└── scripts/pipeline/           # 旧管线（移动相机）
+│   ├── example.yaml       # 渲染配置示例
+│   └── example.md         # 配置字段说明
+├── pipeline/
+│   ├── render_dataset_new.py  # Blender 渲染入口
+│   ├── compose_dataset.py     # 素材合成与 YOLO 标签生成
+│   ├── visualize_keypoints.py # 标注可视化
+│   ├── context.py / ops.py / utils.py
+│   └── render_new.sh           # 本地渲染命令模板
+└── setup_blender_env.sh
 ```
 
----
+## 数据生成流程
+
+```text
+Blender 场景 + configs/*.yaml
+        |
+        v
+render_dataset_new.py
+        |
+        |  RGBA 图片、目标框、关键点、可见性、相机参数
+        v
+compose_dataset.py
+        |
+        v
+YOLO Pose 数据集
+```
+
+渲染阶段固定相机，并对目标物体、灯光和场景参数进行采样。每一帧会执行关键点投影和可见性判断，再输出目标图片及其标注。合成阶段可以使用真实背景图片池，将目标素材与背景进行亮度匹配，并写出标准的 `images/{train,val}`、`labels/{train,val}` 和 `dataset.yaml`。
 
 ## 环境
 
-| 工具 | 用途 |
-|------|------|
-| Blender 4.5.4 LTS | Cycles 渲染 |
-| opencv-python-headless | segmap / 后处理（Blender 内置 Python） |
-| pyyaml | 配置解析 |
+需要安装 Blender 4.x，并保证 Blender 可以加载场景所需的 Python 模块。环境准备脚本只提供本地安装辅助，不会下载或发布 `.blend` 场景：
 
 ```bash
-bash cv/nn/blender/setup_blender_env.sh
+cd public_archive/src/blender
+bash setup_blender_env.sh
 ```
 
----
+## 渲染
 
-## 快速开始
+渲染入口需要一个本地 Blender 场景文件：
 
 ```bash
-cd cv/nn/blender/pipeline_new
-bash render_new.sh
+cd public_archive
+blender -b /absolute/path/to/scene.blend \
+  -P src/blender/pipeline/render_dataset_new.py -- \
+  --config src/blender/configs/example.yaml \
+  --output_dir /absolute/path/to/rendered_assets \
+  --n_images 1000 \
+  --seed 40
 ```
 
-或手动：
+可通过命令行覆盖渲染分辨率、采样数、灯光类型、灯条颜色以及分片参数。完整字段见 [configs/example.md](configs/example.md)。
 
-```bash
-blender -b cv/nn/blender/exchange_removed.blend \
-  -P cv/nn/blender/pipeline_new/render_dataset_new.py -- \
-  --config cv/nn/blender/configs/exchange_new.yaml \
-  --output_dir ../data_v10.0/18 \
-  --n_images 1000 --light_type off \
-  --strip_light_color off --seed 40
-```
+渲染输出结构为：
 
-可视化：
-
-```bash
-python cv/nn/blender/pipeline_new/visualize_keypoints.py \
-  --dataset_dir ../data_v10.0/18 --n 20 --out_dir ./vis
-```
-
----
-
-## pipeline_new 流程
-
-与旧管线（相机在球面上移动）不同：**相机固定**，每帧通过 Empty 父级对场景做旋转 / 距离 / 偏移采样。
-
-```
-exchange_new.yaml + CLI
-        │
-        ▼
-render_dataset_new.py
-  ├─ 固定相机 RenderCam + Cycles/GPU
-  ├─ Object Index Pass → seg mask → 各 target bbox
-  └─ build_ops() 每帧 pre-render
-        │
-        ▼
-  FixedCameraOp → LightingSetupOp → ArcLightsOp → MainLightsOp
-  → AuxLightsOp → GlareSetupOp → ObjectTransformOp
-        │
-        ▼
-  预检（出画 / 遮挡 / min_visible）→ 渲染 RGBA → 写 annotations
-```
-
-| Op | 频率 | 功能 |
-|----|------|------|
-| `FixedCameraOp` | 首帧 | 相机位姿、FOV → K / R / t |
-| `LightingSetupOp` | 每帧 | 柱灯材质、独立灯条亮灭 |
-| `ArcLightsOp` | 每帧 | 背部弧灯 blink / 随机色 |
-| `MainLightsOp` | 首帧 | 主侧板 Area 灯 |
-| `AuxLightsOp` | 每帧 | 随机点光源（帧末删除） |
-| `GlareSetupOp` | 每帧 size | Compositor 光晕 |
-| `ObjectTransformOp` | 每帧 | yaw/pitch/roll/distance/offset + pillar 滑动 |
-
----
-
-## 输出
-
-```
-output_dir/
-├── images/{idx:05d}.png    # RGBA 全图
-├── annotations.json        # 多 shard 时为 annotations_shardN.json
+```text
+rendered_assets/
+├── images/
+├── annotations.json
 ├── config.yaml
-└── meta.json               # 仅 shard 0
+└── meta.json
 ```
 
-每帧标注要点：
+## 合成 YOLO 数据集
 
-| 字段 | 说明 |
-|------|------|
-| `targets.pillar` / `targets.exchange` | 各 target 的 `bbox_2d`、`keypoints_2d` |
-| `keypoints_2d`（顶层） | primary target（通常 pillar） |
-| `bbox_2d` / `bbox_2d_exchange` | pillar / exchange 外接框 |
-| `camera_K` / `camera_R` / `camera_t` | OpenCV 内外参 |
-| `meta` | 物体变换角、距离、灯光状态等 |
-
-**vis**：`0` 出画，`1` 遮挡，`2` 可见。
-
----
-
-## 下游
-
-```
-Blender 输出 → compose_dataset.py → YOLO Pose（如 dataset_finalversion）
-```
-
----
-
-## 并行分片
+将一个或多个 Blender 输出目录合成为训练数据集：
 
 ```bash
---n_shards 4 --shard_id 0   # 输出 annotations_shard0.json，需自行合并
+cd public_archive
+python src/blender/pipeline/compose_dataset.py \
+  --blender_dir /absolute/path/to/rendered_assets \
+  --output_dir /absolute/path/to/exchange_pose
 ```
 
----
+如果有多个素材目录，可以使用 `--blender_dirs`。背景图片、验证集比例和随机种子等参数通过命令行设置，具体参数可以查看：
 
-## 适配新场景
+```bash
+python src/blender/pipeline/compose_dataset.py --help
+```
 
-复制 `configs/exchange_new.yaml`，修改 `camera`、`object_transform`、`lighting`、`targets`（关键点 3D、pass_index、mesh_objects）。字段说明见 [`docs/exchange_new_config.md`](docs/exchange_new_config.md)。
+## 标注可视化
+
+```bash
+python src/blender/pipeline/visualize_keypoints.py \
+  --dataset_dir /absolute/path/to/rendered_assets \
+  --n 20 \
+  --out_dir /absolute/path/to/visualized_samples
+```
+
+可视化工具读取渲染阶段的 `annotations.json`，用于检查目标框、关键点和可见性。合成后的 YOLO 数据集可使用 `src/hrnet/data/visualize_dataset.py` 进一步抽查。
+
+## 下游接口
+
+合成脚本输出的目录可以直接交给 `src/yolo/configs/exchange_pose_dataset.yaml` 所描述的 YOLO Pose 训练流程。检测数据集由 YOLO Pose 数据集转换得到：
+
+```bash
+python src/yolo/pose2detect.py \
+  --source /absolute/path/to/exchange_pose \
+  --output /absolute/path/to/exchange_detect
+```
