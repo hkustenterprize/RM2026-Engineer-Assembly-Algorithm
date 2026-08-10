@@ -39,47 +39,52 @@ public_archive/
 │   │   ├── configs/             # 场景和渲染配置示例
 │   │   ├── pipeline/            # 渲染、合成、可视化脚本
 │   │   └── setup_blender_env.sh
-│   ├── yolo/                   # Ultralytics YOLO 训练与导出
-│   │   ├── configs/             # 训练配置和数据集配置
-│   │   ├── train/               # 统一训练入口、增强和 trainer
-│   │   ├── pose2detect.py       # YOLO Pose 转检测数据集
-│   │   └── export_openvino.py
-│   ├── hrnet/                  # MMPose LiteHRNet 训练、推理和导出
-│   │   ├── configs/             # LiteHRNet-18/30 主线配置
-│   │   ├── data/                # YOLO 到 COCO 的转换和可视化
-│   │   ├── tools/               # 训练、推理、导出和环境检查
-│   │   └── experimental/        # 非主线实验代码
+│   ├── nn/                      # 神经网络代码和共享 uv 环境
+│   │   ├── pyproject.toml
+│   │   ├── uv.lock
+│   │   ├── setup_env.sh
+│   │   ├── yolo/                # Ultralytics YOLO 训练与导出
+│   │   │   ├── configs/         # 训练配置和数据集配置
+│   │   │   ├── train/           # 统一训练入口、增强和 trainer
+│   │   │   ├── pose2detect.py   # YOLO Pose 转检测数据集
+│   │   │   └── export_openvino.py
+│   │   └── hrnet/               # MMPose LiteHRNet 训练、推理和导出
+│   │       ├── configs/         # LiteHRNet-18/30 主线配置
+│   │       ├── data/            # YOLO 到 COCO 的转换和可视化
+│   │       ├── tools/           # 训练、推理、导出和环境检查
+│   │       └── experimental/    # 非主线实验代码
 │   └── utils.py                # 配置驱动的对象构造工具
 ├── LICENSE
 └── README.md
 ```
 
-`src/hrnet` 提供当前 Python 环境和 `uv.lock`。YOLO 训练复用该环境，但训练入口和配置保留在 `src/yolo`，便于区分两条视觉模型主线。
+`src` 是项目的 Python 导入根目录，神经网络模块统一通过 `nn.*` 导入。`src/nn` 保存 YOLO 与 LiteHRNet 共用的 `pyproject.toml`、`uv.lock` 和 `.venv`，两条训练主线分别位于 `src/nn/yolo` 与 `src/nn/hrnet`。
 
 ## 环境准备
 
-LiteHRNet 和 YOLO 共用 `src/hrnet` 下的 uv 环境。首次安装：
+LiteHRNet 和 YOLO 共用 `src/nn` 下的 uv 环境。首次安装：
 
 ```bash
-cd public_archive/src/hrnet
-bash scripts/setup_env.sh
+cd public_archive
+bash src/nn/setup_env.sh
 ```
 
 检查环境：
 
 ```bash
-cd public_archive/src/hrnet
-uv run python tools/check_environment.py
+cd public_archive
+PYTHONPATH=./src uv run --project src/nn \
+  python -m nn.hrnet.tools.check_environment
 ```
 
-Blender 渲染使用 Blender 自带 Python 和 Cycles。Blender 不属于 `src/hrnet` 的 Python 环境；请先安装 Blender，再根据本机路径执行：
+Blender 渲染使用 Blender 自带 Python 和 Cycles。Blender 不属于 `src/nn` 的 Python 环境；请先安装 Blender，再根据本机路径执行：
 
 ```bash
 cd public_archive/src/blender
 bash setup_blender_env.sh
 ```
 
-训练时由 PyTorch wheel 提供 CUDA runtime。MMCV 的编译设置、CUDA 版本和具体硬件要求请以 [src/hrnet/README.md](src/hrnet/README.md) 中的环境说明为准。
+训练时由 PyTorch wheel 提供 CUDA runtime。MMCV 的编译设置、CUDA 版本和具体硬件要求请以 [src/nn/hrnet/README.md](src/nn/hrnet/README.md) 中的环境说明为准。
 
 ## 数据集准备
 
@@ -96,13 +101,14 @@ dataset_root/
 └── dataset.yaml
 ```
 
-训练集包含 40,860 张图片，验证集包含 4,540 张图片，共 45,400 张。下载后，将数据集路径填入 `src/yolo/configs/exchange_pose_dataset.yaml`，或在训练命令中通过 `--data` 显式指定自己的 `dataset.yaml`。
+训练集包含 40,860 张图片，验证集包含 4,540 张图片，共 45,400 张。下载后，将数据集路径填入 `src/nn/yolo/configs/exchange_pose_dataset.yaml`，或在训练命令中通过 `--data` 显式指定自己的 `dataset.yaml`。
 
 姿态数据集包含 `pillar` 和 `exchange` 两类，以及分布在两个目标上的 12 个关键点。检测模型只需要目标框，可以由姿态数据集转换得到：
 
 ```bash
 cd public_archive
-python src/yolo/pose2detect.py \
+PYTHONPATH=./src uv run --project src/nn \
+  python -m nn.yolo.pose2detect \
   --source /absolute/path/to/exchange_pose \
   --output /absolute/path/to/exchange_detect
 ```
@@ -155,34 +161,37 @@ YOLO 主线由一个训练入口支持姿态和检测两种任务。两个 YAML 
 
 | 配置 | 任务 | 模型输出 | 主要用途 |
 | --- | --- | --- | --- |
-| `src/yolo/configs/train_pose.yaml` | 姿态 | 目标框 + 12 个关键点 | bottom-up 关键点检测 |
-| `src/yolo/configs/train_detect.yaml` | 检测 | 目标框 | top-down LiteHRNet 的前级检测 |
+| `src/nn/yolo/configs/train_pose.yaml` | 姿态 | 目标框 + 12 个关键点 | bottom-up 关键点检测 |
+| `src/nn/yolo/configs/train_detect.yaml` | 检测 | 目标框 | top-down LiteHRNet 的前级检测 |
 
 使用 `uv` 环境训练：
 
 ```bash
 cd public_archive
-uv run --project src/hrnet python src/yolo/train/train.py \
-  --config src/yolo/configs/train_pose.yaml
+PYTHONPATH=./src uv run --project src/nn \
+  python -m nn.yolo.train.train \
+  --config src/nn/yolo/configs/train_pose.yaml
 ```
 
 ```bash
 cd public_archive
-uv run --project src/hrnet python src/yolo/train/train.py \
-  --config src/yolo/configs/train_detect.yaml
+PYTHONPATH=./src uv run --project src/nn \
+  python -m nn.yolo.train.train \
+  --config src/nn/yolo/configs/train_detect.yaml
 ```
 
 训练参数可以通过命令行覆盖。第一次建议使用少量 epoch 检查数据和增强：
 
 ```bash
-uv run --project src/hrnet python src/yolo/train/train.py \
-  --config src/yolo/configs/train_pose.yaml \
+PYTHONPATH=./src uv run --project src/nn \
+  python -m nn.yolo.train.train \
+  --config src/nn/yolo/configs/train_pose.yaml \
   --data /absolute/path/to/dataset.yaml \
   --epochs 1 --batch 8 --imgsz 256 --workers 0 \
   --name smoke_pose
 ```
 
-训练结果默认写入 `src/yolo/runs/pose/` 或 `src/yolo/runs/detect/`。由于配置中启用了 `plots: true`，Ultralytics 会生成：
+训练结果默认写入 `src/nn/yolo/runs/pose/` 或 `src/nn/yolo/runs/detect/`。由于配置中启用了 `plots: true`，Ultralytics 会生成：
 
 ```text
 train_batch0.jpg       # 训练批次中的目标框和关键点/目标框
@@ -198,15 +207,16 @@ weights/best.pt
 LiteHRNet 使用 top-down 流程：YOLO 检测目标框，随后对局部区域进行 LiteHRNet 关键点预测。公开训练配置为：
 
 ```text
-src/hrnet/configs/td-hm_litehrnet18_exchange12_v11.0.py
-src/hrnet/configs/td-hm_litehrnet30_exchange12_v11.0.py
+src/nn/hrnet/configs/td-hm_litehrnet18_exchange12_v11.0.py
+src/nn/hrnet/configs/td-hm_litehrnet30_exchange12_v11.0.py
 ```
 
 MMPose 训练需要先将 YOLO Pose 标签转换为 COCO keypoint 标注：
 
 ```bash
 cd public_archive
-uv run --project src/hrnet python src/hrnet/data/convert_yolo_to_coco.py \
+PYTHONPATH=./src uv run --project src/nn \
+  python -m nn.hrnet.data.convert_yolo_to_coco \
   /absolute/path/to/exchange_pose \
   --output /absolute/path/to/exchange_pose_annotations
 ```
@@ -217,12 +227,12 @@ uv run --project src/hrnet python src/hrnet/data/convert_yolo_to_coco.py \
 export HRNET_DATA_ROOT=/absolute/path/to/exchange_pose
 export HRNET_ANN_ROOT=/absolute/path/to/exchange_pose_annotations
 
-cd public_archive/src/hrnet
-bash scripts/train_litehrnet.sh td-hm_litehrnet18_exchange12_v11.0.py
-bash scripts/train_litehrnet.sh td-hm_litehrnet30_exchange12_v11.0.py
+cd public_archive
+bash src/nn/hrnet/scripts/train_litehrnet.sh td-hm_litehrnet18_exchange12_v11.0.py
+bash src/nn/hrnet/scripts/train_litehrnet.sh td-hm_litehrnet30_exchange12_v11.0.py
 ```
 
-图片和视频推理共用 `src/hrnet/tools/infer.py`。具体参数和 OpenVINO 导出方式见 [src/hrnet/README.md](src/hrnet/README.md)。
+图片和视频推理共用 `nn.hrnet.tools.infer`。具体参数和 OpenVINO 导出方式见 [src/nn/hrnet/README.md](src/nn/hrnet/README.md)。
 
 ## 发布物
 
@@ -251,7 +261,7 @@ bash scripts/train_litehrnet.sh td-hm_litehrnet30_exchange12_v11.0.py
 
 - 整理 Blender 合成数据管线。
 - 整理 YOLO 和 LiteHRNet 的训练、推理与 OpenVINO 导出入口。
-- 将历史实验代码移入 `src/hrnet/experimental/`。
+- 将历史实验代码移入 `src/nn/hrnet/experimental/`。
 
 ## License
 

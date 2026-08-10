@@ -235,8 +235,9 @@ __marimo__/
 /weights
 
 # Local training outputs and downloaded checkpoints
-/src/yolo/runs/
-/src/yolo/*.pt
-/src/yolo/*.onnx
-/src/yolo/*.xml
-/src/yolo/*.bin
+/src/nn/yolo/runs/
+/src/nn/yolo/*.pt
+/src/nn/yolo/*.onnx
+/src/nn/yolo/*.xml
+/src/nn/yolo/*.bin
+/yolo*.pt
