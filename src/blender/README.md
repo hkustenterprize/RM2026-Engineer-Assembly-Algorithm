@@ -1,6 +1,6 @@
 # Blender 合成数据生成
 
-本目录负责从 Blender 场景生成带几何标注的目标素材，并将素材合成为 YOLO Pose 数据集。Blender 场景文件不随代码仓库发布，需要在本地准备对应的 `.blend` 文件。
+本目录负责从 Blender 场景生成带几何标注的目标素材，并将素材合成为 YOLO Pose 数据集。当前公开场景文件为 `exchange.blend`。
 
 ## 目录结构
 
@@ -10,12 +10,12 @@ blender/
 │   ├── example.yaml       # 渲染配置示例
 │   └── example.md         # 配置字段说明
 ├── pipeline/
-│   ├── render_dataset_new.py  # Blender 渲染入口
+│   ├── render_dataset.py      # Blender 渲染入口
 │   ├── compose_dataset.py     # 素材合成与 YOLO 标签生成
 │   ├── visualize_keypoints.py # 标注可视化
 │   ├── context.py / ops.py / utils.py
-│   └── render_new.sh           # 本地渲染命令模板
-└── setup_blender_env.sh
+│   └── setup_blender_env.sh
+└── exchange.blend              # 公开 Blender 场景
 ```
 
 ## 数据生成流程
@@ -24,7 +24,7 @@ blender/
 Blender 场景 + configs/*.yaml
         |
         v
-render_dataset_new.py
+render_dataset.py
         |
         |  RGBA 图片、目标框、关键点、可见性、相机参数
         v
@@ -38,7 +38,7 @@ YOLO Pose 数据集
 
 ## 环境
 
-需要安装 Blender 4.x，并保证 Blender 可以加载场景所需的 Python 模块。环境准备脚本只提供本地安装辅助，不会下载或发布 `.blend` 场景：
+需要安装 Blender 4.x，并保证 Blender 可以加载场景所需的 Python 模块。公开场景位于当前目录的 `exchange.blend`：
 
 ```bash
 cd public_archive/src/blender
@@ -47,12 +47,12 @@ bash setup_blender_env.sh
 
 ## 渲染
 
-渲染入口需要一个本地 Blender 场景文件：
+渲染入口使用当前目录的公开 Blender 场景文件：
 
 ```bash
 cd public_archive
-blender -b /absolute/path/to/scene.blend \
-  -P src/blender/pipeline/render_dataset_new.py -- \
+blender -b src/blender/exchange.blend \
+  -P src/blender/pipeline/render_dataset.py -- \
   --config src/blender/configs/example.yaml \
   --output_dir /absolute/path/to/rendered_assets \
   --n_images 1000 \

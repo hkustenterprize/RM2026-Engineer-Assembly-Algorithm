@@ -1,6 +1,6 @@
-# Expected local layout after converting the pose dataset with pose_to_detect_dataset.py.
-train: ../datasets/exchange_detect/images/train
-val: ../datasets/exchange_detect/images/val
+# Expected local layout after converting the pose dataset with pose2detect.py.
+train: <path-to-your-dataset>/images/train
+val: <path-to-your-dataset>/images/val
 
 names:
   0: pillar

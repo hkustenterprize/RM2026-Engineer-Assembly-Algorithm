@@ -1,10 +1,10 @@
 """
-render_dataset_new.py — 固定相机 + 物体变换 合成数据生成
+render_dataset.py — 固定相机 + 物体变换合成数据生成
 
 驱动模块: pipeline/ (固定相机，物体整体旋转与平移)
 
 用法:
-  blender -b exchange_v2.0.blend -P render_dataset_new.py -- \\
+  blender -b exchange.blend -P render_dataset.py -- \\
         --config ../configs/example.yaml --n_images 100 --output_dir ./out
 
 输出:

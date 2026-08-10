@@ -130,7 +130,7 @@ def _fmt(val, fmt=".2f"):
 
 
 def _draw_meta_text(out, ann):
-    """绘制元信息文字条 (兼容 render_dataset / render_dataset_new)."""
+    """绘制元信息文字条。"""
     meta = ann.get("meta", {})
     n_vis = meta.get("n_visible", "?")
     n_occ = meta.get("n_occluded", "?")

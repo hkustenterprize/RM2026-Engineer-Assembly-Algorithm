@@ -1,6 +1,6 @@
 # Expected local layout after downloading the pose dataset.
-train: ../datasets/exchange_pose/images/train
-val: ../datasets/exchange_pose/images/val
+train: <path-to-your-dataset>/images/train
+val: <path-to-your-dataset>/images/val
 
 kpt_shape: [12, 3]
 flip_idx: [1, 0, 3, 2, 4, 11, 10, 9, 8, 7, 6, 5]

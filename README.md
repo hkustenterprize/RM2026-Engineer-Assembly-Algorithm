@@ -35,6 +35,7 @@ public_archive/
 ├── doc/                         # 技术报告
 ├── src/
 │   ├── blender/                 # Blender 渲染与数据合成
+│   │   ├── exchange.blend       # 公开的 Blender 场景文件
 │   │   ├── configs/             # 场景和渲染配置示例
 │   │   ├── pipeline/            # 渲染、合成、可视化脚本
 │   │   └── setup_blender_env.sh
@@ -114,7 +115,7 @@ python src/yolo/pose2detect.py \
 
 ```text
 Blender 场景
-    -> src/blender/pipeline/render_dataset_new.py
+    -> src/blender/pipeline/render_dataset.py
     -> 目标图片、关键点和可见性标注
     -> src/blender/pipeline/compose_dataset.py
     -> YOLO Pose 数据集
@@ -124,8 +125,8 @@ Blender 场景
 
 ```bash
 cd public_archive
-blender -b /absolute/path/to/scene.blend \
-  -P src/blender/pipeline/render_dataset_new.py -- \
+blender -b src/blender/exchange.blend \
+  -P src/blender/pipeline/render_dataset.py -- \
   --config src/blender/configs/example.yaml \
   --output_dir /absolute/path/to/rendered_assets \
   --n_images 1000

@@ -1,6 +1,6 @@
 # Exchange 合成配置说明（`configs/example.yaml`）
 
-本文与 `pipeline/ops.py`、`pipeline/render_dataset_new.py` 一一对应。坐标均为 **Blender 世界系**，Z 向上，单位 **米**。
+本文与 `pipeline/ops.py`、`pipeline/render_dataset.py` 一一对应。坐标均为 **Blender 世界系**，Z 向上，单位 **米**。
 
 与旧版 `exchange.yaml` 的核心区别：**相机固定**，物体通过 Empty 父级每帧做旋转与平移（见 `object_transform`）。
 
@@ -8,13 +8,13 @@
 
 ```text
 blender -b /absolute/path/to/scene.blend \
-  -P pipeline/render_dataset_new.py -- \
+  -P pipeline/render_dataset.py -- \
   --config configs/example.yaml \
   --n_images 1000 --output_dir ./data_v10.0/18 \
   --light_type off --strip_light_color off --seed 40
 ```
 
-或设置 `SCENE` 后执行 `pipeline/render_new.sh`。
+场景文件为仓库中的 `exchange.blend`，也可以替换为其他兼容的 `.blend` 文件。
 
 ### CLI 覆盖项
 
@@ -217,7 +217,7 @@ Compositor `FOG_GLOW` 光晕，插在 Render Layers 与 Composite 之间。
 
 ---
 
-## 遮挡预检（`render_dataset_new.py`）
+## 遮挡预检（`render_dataset.py`）
 
 | 配置 | 默认 | 含义 |
 |------|------|------|
@@ -256,6 +256,6 @@ Compositor `FOG_GLOW` 光晕，插在 Render Layers 与 Composite 之间。
 ## 相关源文件
 
 - `pipeline/ops.py` — Op 实现
-- `pipeline/render_dataset_new.py` — 主循环、segmap、预检
+- `pipeline/render_dataset.py` — 主循环、segmap、预检
 - `pipeline/utils.py` — 投影、遮挡和相机参数工具
 - `configs/example.yaml` — 配置模板
