@@ -1,5 +1,5 @@
 # ─── 合成数据配置 — 固定相机 + 物体变换模式 ─────────────────────────────────
-# 对应 Blender 文件: exchange_v2.0.blend
+# 对应 Blender 文件: exchange.blend
 # 驱动模块: pipeline/
 #
 # 与旧 exchange.yaml 的核心区别:

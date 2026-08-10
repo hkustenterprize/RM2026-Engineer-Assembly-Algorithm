@@ -1,6 +1,7 @@
 # Exchange 合成配置说明（`configs/example.yaml`）
 
 本文与 `pipeline/ops.py`、`pipeline/render_dataset.py` 一一对应。坐标均为 **Blender 世界系**，Z 向上，单位 **米**。
+渲染脚本固定使用 Blender 4.5.0，依赖其内置的 `bpy` 和 `mathutils`，以及安装脚本提供的 `numpy`、`opencv-python-headless` 与 `PyYAML`。
 
 与旧版 `exchange.yaml` 的核心区别：**相机固定**，物体通过 Empty 父级每帧做旋转与平移（见 `object_transform`）。
 

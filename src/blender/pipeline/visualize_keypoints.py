@@ -10,7 +10,7 @@ vis 值含义:
   1 = 遮挡  → 橙色空心圆 + × + 名称(occ)
   0 = 视野外 → 不绘制
 
-依赖: opencv-python, numpy  (conda run -n mujoco-sim python visualize_keypoints.py ...)
+依赖: opencv-python, numpy  (使用 `uv run --project src/nn python ...` 调用)
 """
 import argparse
 import json

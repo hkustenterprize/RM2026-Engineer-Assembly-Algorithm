@@ -1,6 +1,7 @@
 # Blender 合成数据生成
 
 本目录负责从 Blender 场景生成带几何标注的目标素材，并将素材合成为 YOLO Pose 数据集。当前公开场景文件为 `exchange.blend`。
+渲染脚本运行在 Blender 内置 Python 中；素材合成和标注可视化运行在共享的 `src/nn` Python 环境中。
 
 ## 目录结构
 
@@ -14,7 +15,8 @@ blender/
 │   ├── compose_dataset.py     # 素材合成与 YOLO 标签生成
 │   ├── visualize_keypoints.py # 标注可视化
 │   ├── context.py / ops.py / utils.py
-│   └── setup_blender_env.sh
+│   └── __init__.py
+├── setup_blender_env.sh        # Blender 4.5.0 与渲染依赖安装
 └── exchange.blend              # 公开 Blender 场景
 ```
 
@@ -38,7 +40,7 @@ YOLO Pose 数据集
 
 ## 环境
 
-需要安装 Blender 4.x，并保证 Blender 可以加载场景所需的 Python 模块。公开场景位于当前目录的 `exchange.blend`：
+渲染流水线固定使用 Blender 4.5.0，不对其他 Blender 版本提供兼容承诺。安装脚本会下载 Blender 4.5.0，并使用其内置 Python 3.11 安装渲染端所需的 `numpy`、`opencv-python-headless` 和 `PyYAML`。公开场景位于当前目录的 `exchange.blend`：
 
 ```bash
 cd public_archive/src/blender
@@ -77,7 +79,7 @@ rendered_assets/
 
 ```bash
 cd public_archive
-python src/blender/pipeline/compose_dataset.py \
+uv run --project src/nn python src/blender/pipeline/compose_dataset.py \
   --blender_dir /absolute/path/to/rendered_assets \
   --output_dir /absolute/path/to/exchange_pose
 ```
@@ -85,26 +87,26 @@ python src/blender/pipeline/compose_dataset.py \
 如果有多个素材目录，可以使用 `--blender_dirs`。背景图片、验证集比例和随机种子等参数通过命令行设置，具体参数可以查看：
 
 ```bash
-python src/blender/pipeline/compose_dataset.py --help
+uv run --project src/nn python src/blender/pipeline/compose_dataset.py --help
 ```
 
 ## 标注可视化
 
 ```bash
-python src/blender/pipeline/visualize_keypoints.py \
+uv run --project src/nn python src/blender/pipeline/visualize_keypoints.py \
   --dataset_dir /absolute/path/to/rendered_assets \
   --n 20 \
   --out_dir /absolute/path/to/visualized_samples
 ```
 
-可视化工具读取渲染阶段的 `annotations.json`，用于检查目标框、关键点和可见性。合成后的 YOLO 数据集可使用 `src/hrnet/data/visualize_dataset.py` 进一步抽查。
+可视化工具读取渲染阶段的 `annotations.json`，用于检查目标框、关键点和可见性。合成后的 YOLO 数据集可使用 `src/nn/hrnet/data/visualize_dataset.py` 进一步抽查。
 
 ## 下游接口
 
-合成脚本输出的目录可以直接交给 `src/yolo/configs/exchange_pose_dataset.yaml` 所描述的 YOLO Pose 训练流程。检测数据集由 YOLO Pose 数据集转换得到：
+合成脚本输出的目录可以直接交给 `src/nn/yolo/configs/exchange_pose_dataset.yaml` 所描述的 YOLO Pose 训练流程。检测数据集由 YOLO Pose 数据集转换得到：
 
 ```bash
-python src/yolo/pose2detect.py \
+uv run --project src/nn python src/nn/yolo/pose2detect.py \
   --source /absolute/path/to/exchange_pose \
   --output /absolute/path/to/exchange_detect
 ```

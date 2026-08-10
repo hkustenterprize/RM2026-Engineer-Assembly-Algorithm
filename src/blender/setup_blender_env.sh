@@ -1,26 +1,24 @@
 #!/usr/bin/env bash
 # =============================================================================
-# setup_blender_env.sh — 一键下载 Blender 4.5.4 LTS 并配置渲染依赖
+# setup_blender_env.sh — 一键下载 Blender 4.5.0 并配置渲染依赖
 #
 # 功能:
-#   1. 下载 Blender 4.5.4 LTS (Linux x64, tar.xz)
+#   1. 下载 Blender 4.5.0 LTS (Linux x64, tar.xz)
 #   2. 解压到 BLENDER_INSTALL_DIR (默认 ~/blender)
 #   3. 将 blender 可执行文件添加到 PATH (~/.bashrc 和 ~/.zshrc)
-#   4. 用 Blender 内置 Python 3.11 安装渲染所需的 Python 包
+#   4. 用 Blender 4.5.0 内置 Python 3.11 安装渲染所需的 Python 包
 #
 # 用法:
 #   bash setup_blender_env.sh
 #
 # 环境变量 (可覆盖默认值):
 #   BLENDER_INSTALL_DIR   解压目标目录 (默认: ~/blender)
-#   BLENDER_VERSION       版本号 (默认: 4.5.4)
 # =============================================================================
 
 set -euo pipefail
 
 # ── 配置 ──────────────────────────────────────────────────────────────────────
-BLENDER_VERSION="${BLENDER_VERSION:-4.5.4}"
-BLENDER_PYTHON_MINOR="11"            # Blender 4.5 内置 Python 3.11
+BLENDER_VERSION="4.5.0"
 BLENDER_INSTALL_DIR="${BLENDER_INSTALL_DIR:-$HOME/blender}"
 
 # Blender 下载 URL (官方镜像)
@@ -88,15 +86,9 @@ export PATH="${BLENDER_EXTRACTED}:${PATH}"
 info "blender 路径: $(command -v blender)"
 
 # ── 步骤 3: 定位 Blender 内置 Python ─────────────────────────────────────────
-# Blender 4.x 内置 Python 位于 <blender_dir>/<major.minor>/python/bin/
-BLENDER_PYTHON="${BLENDER_EXTRACTED}/${BLENDER_VERSION%.*}/python/bin/python3.${BLENDER_PYTHON_MINOR}"
-
-if [[ ! -f "${BLENDER_PYTHON}" ]]; then
-    # 自动探测 (兼容路径差异)
-    BLENDER_PYTHON=$(find "${BLENDER_EXTRACTED}" -name "python3.*" -type f | head -1)
-    [[ -n "${BLENDER_PYTHON}" ]] || error "未找到 Blender 内置 Python, 请手动指定"
-    warn "使用探测到的 Python: ${BLENDER_PYTHON}"
-fi
+# Blender 4.5.0 使用内置 Python 3.11；固定版本后保持路径明确，便于发现安装问题。
+BLENDER_PYTHON="${BLENDER_EXTRACTED}/4.5/python/bin/python3.11"
+[[ -x "${BLENDER_PYTHON}" ]] || error "未找到 Blender 4.5.0 内置 Python: ${BLENDER_PYTHON}"
 
 info "Blender Python: ${BLENDER_PYTHON}"
 "${BLENDER_PYTHON}" --version
@@ -110,7 +102,8 @@ info "安装渲染依赖..."
 
 # 依赖列表
 PACKAGES=(
-    "opencv-python-headless"   # 径向畸变 cv2.remap + 图像处理
+    "numpy"                    # 数值计算与关键点坐标处理
+    "opencv-python-headless"   # 分割图读取与图像处理
     "pyyaml"                   # YAML 配置文件解析
 )
 
