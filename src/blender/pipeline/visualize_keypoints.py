@@ -67,7 +67,7 @@ def _draw_target_bboxes(out, ann, targets_ann):
                 cv2.putText(out, tgt_name, (x0 + 2, y0 + 12),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.3, color, 1, cv2.LINE_AA)
     else:
-        # 旧格式向后兼容
+        # 使用顶层 bbox 字段
         bbox_ex = ann.get("bbox_2d_exchange")
         if bbox_ex is not None:
             x0, y0, x1, y1 = bbox_ex

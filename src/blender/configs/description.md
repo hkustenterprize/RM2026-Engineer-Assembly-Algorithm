@@ -3,7 +3,7 @@
 本文与 `pipeline/ops.py`、`pipeline/render_dataset.py` 一一对应。坐标均为 **Blender 世界系**，Z 向上，单位 **米**。
 渲染脚本固定使用 Blender 4.5.0，依赖其内置的 `bpy` 和 `mathutils`，以及安装脚本提供的 `numpy`、`opencv-python-headless` 与 `PyYAML`。
 
-与旧版 `exchange.yaml` 的核心区别：**相机固定**，物体通过 Empty 父级每帧做旋转与平移（见 `object_transform`）。
+渲染采用**固定相机**，物体通过 Empty 父级每帧做旋转与平移（见 `object_transform`）。
 
 ## 运行命令
 
@@ -15,7 +15,7 @@ blender -b /absolute/path/to/scene.blend \
   --light_type off --strip_light_color off --seed 40
 ```
 
-场景文件为仓库中的 `exchange.blend`，也可以替换为其他兼容的 `.blend` 文件。
+场景文件为仓库中的 `exchange.blend`。
 
 ### CLI 覆盖项
 
@@ -250,7 +250,7 @@ Compositor `FOG_GLOW` 光晕，插在 Render Layers 与 Composite 之间。
 | `camera_K` / `camera_R` / `camera_t` | OpenCV 内外参 |
 | `meta` | `yaw_deg`、`distance_m`、`light_type`、`strip_lights_*` 等 |
 
-无径向畸变、无 alpha 裁剪（与旧 `pipeline` 不同）。
+无径向畸变、无 alpha 裁剪。
 
 ---
 

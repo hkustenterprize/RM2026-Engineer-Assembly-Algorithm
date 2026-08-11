@@ -287,7 +287,7 @@ def _is_valid_bbox2d(bb) -> bool:
 
 
 def _pillar_bbox_for_crop(ann: dict, cw: int, ch: int) -> list[float]:
-    """装配柱 crop 坐标下的 bbox; 兼容 Blender 写出 null 或旧 annotations."""
+    """装配柱 crop 坐标下的 bbox，处理 Blender 写出的 null 值."""
     bb = ann.get("bbox_2d")
     if _is_valid_bbox2d(bb):
         return [float(bb[0]), float(bb[1]), float(bb[2]), float(bb[3])]

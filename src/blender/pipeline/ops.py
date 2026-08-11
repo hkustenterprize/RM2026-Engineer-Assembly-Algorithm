@@ -946,7 +946,10 @@ class ObjectTransformOp(Op):
             if all_kps_in_frame(kp_3d_frame, K, R, t, W, H, margin):
                 break
         else:
-            pass
+            print(
+                f"[render] frame {ctx.frame_idx}: "
+                f"取景检查在 {max_retries} 次重试后仍未通过，使用最后一次采样结果"
+            )
 
         all_kp_3d_frame = {}
         for tgt_name, kps_init in self._all_kp_initial.items():

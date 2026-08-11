@@ -9,7 +9,7 @@
 blender/
 ├── configs/
 │   ├── example.yaml       # 渲染配置示例
-│   └── example.md         # 配置字段说明
+│   └── description.md     # 配置字段说明
 ├── pipeline/
 │   ├── render_dataset.py      # Blender 渲染入口
 │   ├── compose_dataset.py     # 素材合成与 YOLO 标签生成
@@ -40,7 +40,7 @@ YOLO Pose 数据集
 
 ## 环境
 
-渲染流水线固定使用 Blender 4.5.0，不对其他 Blender 版本提供兼容承诺。安装脚本会下载 Blender 4.5.0，并使用其内置 Python 3.11 安装渲染端所需的 `numpy`、`opencv-python-headless` 和 `PyYAML`。公开场景位于当前目录的 `exchange.blend`：
+渲染流水线固定使用 Blender 4.5.0。安装脚本会下载 Blender 4.5.0，并使用其内置 Python 3.11 安装渲染端所需的 `numpy`、`opencv-python-headless` 和 `PyYAML`。公开场景位于当前目录的 `exchange.blend`：
 
 ```bash
 cd public_archive/src/blender
@@ -61,7 +61,7 @@ blender -b src/blender/exchange.blend \
   --seed 40
 ```
 
-可通过命令行覆盖渲染分辨率、采样数、灯光类型、灯条颜色以及分片参数。完整字段见 [configs/example.md](configs/example.md)。
+可通过命令行覆盖渲染分辨率、采样数、灯光类型、灯条颜色以及分片参数。完整字段见 [configs/description.md](configs/description.md)。
 
 渲染输出结构为：
 

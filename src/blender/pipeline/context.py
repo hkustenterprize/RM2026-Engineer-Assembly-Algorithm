@@ -3,13 +3,7 @@ import numpy as np
 
 
 class RenderContext:
-    """每一帧渲染过程中在各 Op 之间传递的共享状态.
-
-    与旧 pipeline.context.RenderContext 的区别:
-    - 相机参数 (K / R / t / cam_pos) 在第一帧由 FixedCameraOp 写入后不再变化
-    - 物体变换参数 (yaw / pitch / roll / distance / offset) 每帧由 ObjectTransformOp 写入
-    - 无畸变 / crop 相关字段
-    """
+    """每一帧渲染过程中在各 Op 之间传递的共享状态."""
 
     __slots__ = (
         "scene", "cam_obj", "cam_data",
