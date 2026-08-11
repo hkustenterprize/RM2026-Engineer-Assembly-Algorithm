@@ -15,7 +15,7 @@ The public archive contains the following parts:
 - Dataset conversion and visualization utilities used by the vision pipelines.
 
 The accompanying technical report also covers PnP pose estimation, motion planning, task orchestration and MuJoCo
-simulation. Those runtime components are outside this public archive.
+simulation. The corresponding runtime components are still being organized and will be published in a later update.
 
 The technical report provides the algorithmic background and system design:
 
