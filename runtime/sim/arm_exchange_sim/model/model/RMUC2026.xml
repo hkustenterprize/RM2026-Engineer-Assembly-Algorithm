@@ -1,0 +1,11 @@
+<mujoco model="RMUC2026">
+    <compiler angle="radian" meshdir="field_assets" />
+    <size njmax="500" nconmax="100" />
+    <asset>
+        <mesh name="base_link_simplified" file="RMUC2026_simplified.STL" />
+    </asset>
+    <worldbody>
+        <geom quat="1.32679e-06 1 0 0" type="mesh" contype="0" conaffinity="0" group="1" rgba="0.75294 0.75294 0.75294 1" mesh="base_link_simplified" />
+        <geom quat="1.32679e-06 1 0 0" type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="base_link_simplified" />
+    </worldbody>
+</mujoco>

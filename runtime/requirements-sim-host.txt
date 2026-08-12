@@ -1,0 +1,12 @@
+# Python dependencies for the MuJoCo + Host integration workflow.
+# ROS 2 packages remain declared in each package.xml.
+numpy==1.26.4
+PyYAML==6.0.2
+mujoco==3.4.0
+glfw==2.10.0
+readerwriterlock==1.0.9
+opencv-contrib-python==4.10.0.84
+openvino==2025.4.1
+scipy
+hpp-fcl==2.4.4
+ompl==2.0.0

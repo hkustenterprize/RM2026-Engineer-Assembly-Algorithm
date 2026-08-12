@@ -1,0 +1,118 @@
+build:
+  base_scene:
+    path: package://arm_exchange_sim/model/arm_exchange_scene.xml
+
+initialization:
+  keyframe: -1
+
+physics:
+  verbose: false
+
+cameras:
+  - name: second_camera
+    topic: /second_camera_left/image_raw
+    info_topic: /second_camera_left/camera_info
+    frame_id: second_camera_left_optical
+    width: 640
+    height: 640
+    render_scale: 1.0
+    fps: 30
+    enabled: true
+  - name: second_camera2
+    topic: /second_camera_right/image_raw
+    info_topic: /second_camera_right/camera_info
+    frame_id: second_camera_right_optical
+    width: 640
+    height: 640
+    render_scale: 1.0
+    fps: 30
+    enabled: true
+
+visualization:
+  enable_visualization: true
+  window_width: 1280
+  window_height: 720
+  title: MuJoCo Arm Exchange Sim
+  vsync: false
+
+plugins:
+  - _class_name: arm_exchange_sim.camera_mount.CameraMountPlugin
+    mount_body: parallel_camera_mount
+    joint1: joint1
+    joint2: joint2
+    reduced_to_mount_xyz: [0.0, 0.0, 0.18]
+    reduced_to_mount_rpy_deg: [0.0, 0.0, 0.0]
+
+  - _class_name: arm_exchange_sim.tf.ArmExchangeTfPlugin
+    ros_events:
+      tf: 1000
+    world_frame: mujoco_world
+    base_frame: base_link
+    chassis_frame: chassis
+    arm_base_frame: arm_base
+    station_frame: exchange_station
+    camera_mount:
+      reduced_frame: camera_reduced_frame
+      joint1: joint1
+      joint2: joint2
+    cameras:
+      - mujoco_camera: second_camera
+        mount_body: second_camera_left_mount
+        mount_frame: second_camera_left_mount
+        link_body: second_camera_left_link
+        link_frame: second_camera_left_link
+        optical_frame: second_camera_left_optical
+      - mujoco_camera: second_camera2
+        mount_body: second_camera_right_mount
+        mount_frame: second_camera_right_mount
+        link_body: second_camera_right_link
+        link_frame: second_camera_right_link
+        optical_frame: second_camera_right_optical
+
+  - _class_name: arm_exchange_sim.arm.ArmPlugin
+    joint_names: [joint1, joint2, joint3, joint4, joint5, joint6]
+    motor_names: [motor_joint1, motor_joint2, motor_joint3, motor_joint4, motor_joint5, motor_joint6]
+    topic: /host/arm/host_output
+    joint_state_topic: /joint_states
+    joint_state_frame: arm_base
+    wrench_topic: /host/arm/feedforward_wrench
+    host_enabled_topic: /sim/mcu/arm_enabled
+    mcu_state_topic: /mcu/arm/state
+    home_positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    use_acceleration_feedforward: false
+    include_link_inertia_moments: true
+    feedforward_update_period_s: 0.001
+    debug_log_period_s: 0.0
+    torque_sign: [1, 1, 1, 1, 1, 1]
+    pid_kp: [240, 720, 680, 220, 160, 40]
+    pid_kd: [26, 70, 60, 32, 20, 4]
+    pid_ki: [10, 12, 5, 2, 5, 2]
+    integral_limit: [1.5, 2.0, 1.0, 1.0, 0.5, 0.5]
+    torque_limit: [80, 80, 80, 30, 20, 20]
+    ros_events:
+      joint_states: 100
+
+  - _class_name: arm_exchange_sim.operator.OperatorLogicPlugin
+    ready_xyz_speed: 0.08
+    blocked_chassis_regions:
+      - x: [-1.5, 0.0]
+        y: [-0.75, 0.75]
+    ros_events:
+      operator_state: 20
+
+  - _class_name: arm_exchange_sim.station.StationPlugin
+    topic: /debug/scene/exchange_station/set_state
+    initial_state:
+      x: -0.05
+      y: 0.20
+      z: 0.60
+      alpha: 0.0
+      theta: 0.0
+      phi: 0.0
+    limits:
+      x: [-0.1, 0.0]
+      y: [0.1, 0.3]
+      z: [0.5, 0.7]
+      alpha: [-0.7854, 0.7854]
+      theta: [-1.5708, 1.5708]
+      phi: [0.0, 1.5708]

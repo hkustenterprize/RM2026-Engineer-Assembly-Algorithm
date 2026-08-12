@@ -1,0 +1,11 @@
+<mujoco model="Energy_Unit.SLDASM">
+    <compiler angle="radian" />
+    <size njmax="500" nconmax="100" />
+    <asset>
+        <mesh name="base_link" file="model/field_assets/Energy_Unit.STL" />
+    </asset>
+    <worldbody>
+        <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="base_link" />
+        <geom type="mesh" rgba="1 1 1 1" mesh="base_link" />
+    </worldbody>
+</mujoco>

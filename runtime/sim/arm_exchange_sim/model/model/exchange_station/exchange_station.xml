@@ -1,0 +1,89 @@
+<mujoco model="exchange_station">
+  <compiler angle="radian"/>
+  
+  <option gravity="0 0 -9.810" integrator="implicitfast" />
+
+  <asset>
+   
+   <!-- exchange.obj split parts (Blender 5.1 export, units: meters, no scale needed) -->
+   <!-- Station body -->
+   <mesh file="model/exchange_station/tech/exchange_station_dark.obj" name="ex_sta_dark"/>
+   <mesh file="model/exchange_station/tech/exchange_station_glow.obj" name="ex_sta_glow"/>
+   <!-- Column/Pillar -->
+   <mesh file="model/exchange_station/tech/exchange_column_dark.obj"      name="ex_col_dark"/>
+   <mesh file="model/exchange_station/tech/exchange_column_screw.obj"     name="ex_col_screw"/>
+   <mesh file="model/exchange_station/tech/exchange_column_light_red.obj" name="ex_col_light_red"/>
+   <mesh file="model/exchange_station/tech/exchange_column_main_red.obj"  name="ex_col_main_red"/>
+   <mesh file="model/exchange_station/tech/exchange_column_em_base.obj"   name="ex_col_em_base"/>
+   <mesh file="model/exchange_station/tech/exchange_column_em_ring.obj"   name="ex_col_em_ring"/>
+
+  </asset>
+
+  <default>
+    <joint limited="true" frictionloss="0.1" armature="0.01"/>
+    <geom contype="0" conaffinity="0" mass="0.01" rgba="0.5 0.5 0.5 1"/>
+    <site size="0.01" rgba="1 1 1 0.3"/>
+    <default class="visual_pillar">
+        <geom type="cylinder" size="0.018 0.05" rgba="0.8 0.8 0.8 1.0" contype="0" conaffinity="0" mass="0.2"/>
+    </default>
+  </default>
+
+  <worldbody>
+    <body name="O_frame" pos="0 0 0">
+      <body name="E">
+
+        <joint name="level_x" type="slide" axis="1 0 0" range="-0.1 0"/>
+        <joint name="level_y" type="slide" axis="0 1 0" range="0.1 0.3"/>
+        <joint name="level_z" type="slide" axis="0 0 1" range="0.5 0.7"/>
+        <joint name="level_theta" type="hinge" axis="0 0 1" range="-1.5708 1.5708"/> 
+        <joint name="level_phi" type="hinge" axis="0 -1 0" range="0 1.5708"/> 
+        <joint name="level_alpha" type="hinge" axis="1 0 0" range="-0.7854 0.7854"/>
+        
+        <!-- Station body (exchange.obj, meters) -->
+        <geom type="mesh" mesh="ex_sta_dark" euler="3.14 0 -1.57" rgba="0.05 0.05 0.05 1" contype="0" conaffinity="0"/>
+        <geom type="mesh" mesh="ex_sta_glow" euler="3.14 0 -1.57" rgba="1.0 1.0 1.0 1.0"  contype="0" conaffinity="0" mass="0"/>
+        <geom name="ex_col_screw"      type="mesh" mesh="ex_col_screw"      euler="3.14 0 -1.57" rgba="0.50 0.50 0.50 1" mass="0" contype="0" conaffinity="0"/>
+        <geom name="ex_col_main_red"   type="mesh" mesh="ex_col_main_red"   euler="3.14 0 -1.57" rgba="0.90 0.10 0.10 1" mass="0" contype="0" conaffinity="0"/>
+
+        
+        <body name="M" pos="-0.169 0 0">
+          <joint name="step3_slide" type="slide" axis="0 0 1" range="0 0.1"/>
+          <geom name="M_step3_mass" type="sphere" size="0.005" pos="0.169 0 0" rgba="1 0 0 0" mass="0.1"/>
+          <!-- <body name="P" pos="0 0 0.108">  -->
+            <joint name="p_axis" type="hinge" axis="0 -1 0" pos="0 0 0.108" range="0 1.57"/>
+            <!-- <geom name="M_step4_mass" type="sphere" size="0.001" rgba="0 0 0 0" mass="0.1"/> -->
+            <!-- <body name="Q" pos="0 0 -0.108">  -->
+              <joint name="q_axis" type="hinge" axis="0 0 1" range="-1.57 1.57"/>
+               <body name="pillar_bottom" pos="0.169 0 0">
+                  <!-- <geom name="pillar_visual" class="visual_pillar" quat="0.7071 0 0.7071 0" pos="0.05 0 0" mass = "0.01"/>  -->
+                  
+                  <!-- Column/Pillar (exchange.obj, meters) -->
+                  <geom name="ex_col_dark"       type="mesh" mesh="ex_col_dark"       euler="3.14 0 -1.57" rgba="0.05 0.05 0.05 1" mass="0.005"/>
+                  <geom name="ex_col_light_red"  type="mesh" mesh="ex_col_light_red"  euler="3.14 0 -1.57" rgba="0.90 0.10 0.10 1" mass="0" contype="0" conaffinity="0"/>
+                  <geom name="ex_col_em_base"    type="mesh" mesh="ex_col_em_base"    euler="3.14 0 -1.57" rgba="0.15 0.08 0.03 0.7" mass="0" contype="0" conaffinity="0"/>
+                  <geom name="ex_col_em_ring"    type="mesh" mesh="ex_col_em_ring"    euler="3.14 0 -1.57" rgba="0.41 0.41 0.41 1" mass="0" contype="0" conaffinity="0"/>
+
+
+              </body>
+            <!-- </body> -->
+          <!-- </body> -->
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- Difficulty Level Controls (PD Control) -->
+    <position name="ctrl_level_x" joint="level_x" kp="2000" kv="300" ctrlrange="-0.1 0" forcerange="-10 10"/>
+    <position name="ctrl_level_y" joint="level_y" kp="2000" kv="300" ctrlrange="0.1 0.3" forcerange="-10 10"/>
+    <position name="ctrl_level_z" joint="level_z" kp="2000" kv="300" ctrlrange="0.5 0.7" forcerange="-10 10"/>
+    <position name="ctrl_level_theta" joint="level_theta" kp="2000" kv="300" ctrlrange="-1.5708 1.5708" forcerange="-10 10"/>
+    <position name="ctrl_level_phi" joint="level_phi" kp="2000" kv="300" ctrlrange="0 1.5708" forcerange="-10 10"/>
+    <position name="ctrl_level_alpha" joint="level_alpha" kp="2000" kv="300" ctrlrange="-0.7854 0.7854" forcerange="-10 10"/>
+
+    <!-- Assembly Step Controls (PD Control) -->
+    <position name="ctrl_m_axis" joint="step3_slide" kp="4000" kv="600" ctrlrange="0 0.1" forcerange="-10 10"/>
+    <position name="ctrl_p_axis" joint="p_axis" kp="3000" kv="600" ctrlrange="0 1.57" forcerange="-10 10"/>
+    <position name="ctrl_q_axis" joint="q_axis" kp="3000" kv="600" ctrlrange="-1.57 1.57" forcerange="-10 10"/>
+  </actuator>
+</mujoco>

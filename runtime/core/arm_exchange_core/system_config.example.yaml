@@ -1,0 +1,223 @@
+# Copy this file to system_config.yaml before building the runtime workspace.
+# Asset and model paths are relative to the repository root.
+
+arm:
+  dh:
+    alpha: [0.0, -1.5707963267948966, 3.141592653589793, -1.5707963267948966, 1.5707963267948966, -1.5707963267948966]
+    a: [0.0, 0.0, 0.38, 0.0, 0.0, 0.0]
+    d: [0.0, 0.0, 0.0, 0.4345, 0.0, 0.0]
+    theta_offset: [0.0, -2.7525588, 1.7870426, -3.141592653589793, 0.0, 0.0]
+
+  tool:
+    tcp_offset_6_tcp: [0.03, 0.0, 0.12]
+
+  joint_limits:
+    lower: [-3.141592653589793, 0.0, 0.0, null, -1.8326, null]
+    upper: [3.141592653589793, 2.2083, 2.3126, null, 1.8326, null]
+
+  dynamics:
+    - mass: 1.092
+      ipos: [0.0, 0.0, -0.03460714285714285]
+      inertia:
+        - [0.0012644942142857173, 0.0, 0.0]
+        - [0.0, 0.0015267529642842047, 0.0]
+        - [0.0, 0.0, 0.0009846167500015155]
+    - mass: 1.02
+      ipos: [0.19, 0.0, 0.0643]
+      inertia:
+        - [0.0004511750000000035, -1.6545199855402848e-18, 0.0]
+        - [-1.654519985540285e-18, 0.022165841666666852, 0.0]
+        - [0.0, 0.0, 0.022272766666666846]
+    - mass: 1.7000000000000002
+      ipos: [0.0, 0.048, 0.0]
+      inertia:
+        - [0.007945263916666688, 0.0, 0.0]
+        - [0.0, 0.001012530583333336, 0.0]
+        - [0.0, 0.0, 0.007847479166666687]
+    - mass: 1.5
+      ipos: [0.0, 0.0, -0.1338]
+      inertia:
+        - [0.008986871, 0.0, 0.0]
+        - [0.0, 0.008609015000000001, 0.0]
+        - [0.0, 0.0, 0.001305806]
+    - mass: 0.6
+      ipos: [0.0, 0.0, 1.425711400789472e-18]
+      inertia:
+        - [0.0013228715, 0.0, 0.0]
+        - [0.0, 0.0013228715, 0.0]
+        - [0.0, 0.0, 0.00012607500000000002]
+    - mass: 1.0
+      ipos: [0.0, 0.0, 0.072]
+      inertia:
+        - [0.005, 0.0, 0.0]
+        - [0.0, 0.005, 0.0]
+        - [0.0, 0.0, 0.005]
+
+collision:
+  station:
+    meshes:
+      - asset: exchange_station_dark.obj
+      - asset: exchange_station_glow.obj
+    local_exchange_meshes:
+      - asset: exchange_column_collision.obj
+
+  arm:
+    capsules:
+      - name: cc_seg23
+        frame: 2
+        from: [0.0, 0.0, 0.0643]
+        to: [0.38, 0.0, 0.0643]
+        radius: 0.03
+      - name: cc_seg34
+        frame: 3
+        from: [0.0, 0.0, 0.0]
+        to: [0.0, 0.4345, 0.0]
+        radius: 0.03
+      - name: cc_wrist_tcp
+        frame: 6
+        from: [0.0, 0.0, 0.0]
+        to: [0.0, 0.0, 0.05]
+        radius: 0.015
+
+perception:
+  camera_sources:
+    left:
+      image_topic: /second_camera_left/image_raw
+      camera_info_topic: /second_camera_left/camera_info
+      frame_id: second_camera_left_optical
+    right:
+      image_topic: /second_camera_right/image_raw
+      camera_info_topic: /second_camera_right/camera_info
+      frame_id: second_camera_right_optical
+
+  pipeline:
+    warmup:
+      enabled: true
+      image_path: null
+      repeat: 1
+
+    keypoint_detector:
+      schema: exchange_12pt
+      yolo_model: weights/yolo_v10.12_openvino_model
+      yolo_device: GPU
+      hrnet_model: weights/litehrnet30_v11.0_openvino_model
+      hrnet_device: CPU
+      hrnet_input_size: [256, 256]
+      hrnet_mean: [123.675, 116.28, 103.53]
+      hrnet_std: [58.395, 57.12, 57.375]
+      bbox_class_id: 1
+      yolo_conf: 0.30
+      crop_margin: 0.0
+      bbox_padding: 1.10
+      min_keypoint_score: 0.0
+      drop_low_confidence_keypoints: true
+      visibility_score_threshold: 0.60
+      min_visible_keypoints: 5
+      fallback_score_threshold: 0.01
+      fallback_min_keypoints: 4
+      fallback_crop_margin: 0.5
+      keypoint_names: [TL, TR, BL, BR, ring, light_BR, light_TR, shell_R, shell_M, shell_L, light_TL, light_BL]
+
+    pose_solver:
+      schema: exchange_12pt
+      output_frame: arm_base
+      use_ransac: true
+      ransac_reprojection_error_px: 3.0
+      ransac_confidence: 0.99
+      ransac_iterations: 100
+
+  keypoint_schemas:
+    exchange_12pt:
+      points:
+        TL: [-0.100000, -0.040000, 0.040000]
+        TR: [-0.100000, 0.040000, 0.040000]
+        BL: [-0.100000, -0.040000, -0.040000]
+        BR: [-0.100000, 0.040000, -0.040000]
+        ring: [0.000, 0.000, 0.000]
+        light_BR: [-0.112000, 0.114870, 0.035953]
+        light_TR: [-0.112000, 0.114870, 0.167312]
+        shell_R: [-0.112000, 0.084871, 0.276449]
+        shell_M: [-0.112000, 0.000000, 0.325449]
+        shell_L: [-0.112000, -0.084871, 0.276449]
+        light_TL: [-0.112000, -0.114870, 0.167312]
+        light_BL: [-0.112000, -0.114870, 0.035953]
+
+planning:
+  exchange:
+    ik_branches: [7]
+    approach:
+      duration_s: 2.0
+      sample_dt: 0.001
+      bit_timeout_s: 1.0
+    feedforward_wrench:
+      enabled: false
+      force_magnitude_n: 3.0
+      pressure_direction_local: [-1.0, 0.0, 0.0]
+      contact_point_tcp_m: [0.0, 0.0, 0.0]
+      min_projected_force_ratio: 0.25
+      max_force_n: 8.0
+      max_torque_nm: 1.0
+    stage_path:
+      default_level: 3
+      q_manual:
+        min_angle_deg: -90.0
+        max_angle_deg: 90.0
+        rate_limit_deg_s: 90.0
+        command_sample_dt: 0.02
+      ready_adjust:
+        max_delta_m: 0.005
+        max_rate_m_s: 0.08
+        roll_search_max_deg: 15.0
+        roll_search_step_deg: 3.0
+        ik_branches: null
+      semi_auto:
+        slide_forward_rate_m_s: 0.03
+        slide_forward_max_extra_m: 0.03
+        p_forward_rate_deg_s: 30.0
+        p_forward_max_extra_deg: 8.0
+        adjust_roll_search_max_deg: 30.0
+        adjust_roll_search_step_deg: 5.0
+        ik_branches: null
+      recovery:
+        extract_distance_m: 0.15
+        extract_step_m: 0.01
+        side_release_distance_m: 0.10
+        side_release_step_m: 0.01
+        allow_degraded_release: true
+        bit_timeout_s: null
+      best_ik:
+        enabled: true
+        invalid_node_penalty: 1000.0
+        roll_motion_weight: 1.0
+        position_sigma_m: 0.005
+        axis_sigma_deg: 5.0
+        roll_free: true
+        joint_reference_sigma_deg: 30.0
+        max_nfev: 40
+      joint_path:
+        roll_sample_step_deg: 5.0
+        bandwidth: 6
+        collision_soft_margin: 0.05
+        collision_soft_weight: 3.0
+        motion_l1_weight: 1.0
+        motion_l2_weight: 0.5
+        joint_limit_margin_rad: 0.25
+        joint_limit_weight: 5.0
+        q_sweep:
+          sample_step_deg: 5.0
+          motion_weight: 1.0
+          limit_margin_rad: 0.25
+          limit_weight: 5.0
+          collision_soft_margin: 0.05
+          collision_soft_weight: 3.0
+      trajectory:
+        duration_s: 6.0
+        sample_dt: 0.001
+
+  type3:
+    exchange_trajectory:
+      r_p: 0.170
+      r_q: 0.130
+      phi: 0.5686
+      insert_slide_mag: 0.15
+      slide_z_mag: 0.104

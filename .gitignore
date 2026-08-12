@@ -211,9 +211,6 @@ cython_debug/
 install/
 log/
 build/
-runtime/ros2/**/build/
-runtime/ros2/**/install/
-runtime/ros2/**/log/
 
 # Legacy top-level runtime folders were migrated under runtime/.
 /sim/
@@ -233,6 +230,9 @@ __marimo__/
 # debug
 /debug
 /weights
+
+# Machine-specific runtime configuration. Start from the tracked example.
+/runtime/core/arm_exchange_core/system_config.yaml
 
 # Local training outputs and downloaded checkpoints
 /src/nn/yolo/runs/

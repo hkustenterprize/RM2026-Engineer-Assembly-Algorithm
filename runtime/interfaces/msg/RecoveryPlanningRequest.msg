@@ -1,0 +1,13 @@
+std_msgs/Header header
+
+uint8 MODE_EXTRACT_FOR_RETRY=1
+uint8 MODE_SIDE_RELEASE=2
+uint8 MODE_RETRACT_TO_APPROACH_START=3
+
+string request_id
+uint8 mode
+
+geometry_msgs/PoseStamped station_pose_arm_base
+geometry_msgs/PoseStamped local_pose_arm_base
+sensor_msgs/JointState initial_joint_state
+sensor_msgs/JointState goal_joint_state

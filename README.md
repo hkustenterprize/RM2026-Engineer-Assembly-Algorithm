@@ -15,7 +15,8 @@ The public archive contains the following parts:
 - Dataset conversion and visualization utilities used by the vision pipelines.
 
 The accompanying technical report also covers PnP pose estimation, motion planning, task orchestration and MuJoCo
-simulation. The corresponding runtime components are still being organized and will be published in a later update.
+simulation. A minimal MuJoCo and Host integration workspace is included for reproducible simulation-based testing.
+The real backend is still being organized and is not part of the current release.
 
 The technical report provides the algorithmic background and system design:
 
@@ -40,6 +41,12 @@ public_archive/
 │   │   ├── utils.py             # Configuration-driven object construction
 │   │   ├── yolo/                # Ultralytics YOLO pose/detection pipeline
 │   │   └── hrnet/               # MMPose LiteHRNet pipeline
+├── runtime/
+│   ├── interfaces/              # ROS 2 task and controller interfaces
+│   ├── core/                    # Numerical perception and planning package
+│   ├── sim/                     # Reusable MuJoCo engine and task simulation package
+│   ├── host/                    # Perception, planning and task nodes
+│   └── scripts/                 # Workspace build and environment setup
 ├── LICENSE
 └── README.md
 ```
@@ -70,6 +77,40 @@ bash setup_blender_env.sh
 ```
 
 See the module READMEs for model-specific dependencies, dataset conversion and execution commands.
+
+## MuJoCo and Host Integration
+
+The public ROS 2 workspace uses standard `sensor_msgs/Image` messages for simulated camera frames and does not depend on
+`shm-tools`, `shm_msgs`, or a shared-memory bridge. Create the machine-local configuration from the tracked template,
+then build and source the workspace:
+
+```bash
+cd public_archive
+cp runtime/core/arm_exchange_core/system_config.example.yaml \
+  runtime/core/arm_exchange_core/system_config.yaml
+# Adjust model paths and OpenVINO devices in system_config.yaml when needed.
+runtime/scripts/build.sh
+source runtime/scripts/setup_env.sh
+ros2 launch arm_exchange_host sim_host.launch.py camera_view:=false
+```
+
+The default launch starts MuJoCo, the planning node and the task node. Model-based perception is optional because its
+checkpoint files are released separately:
+
+```bash
+ros2 launch arm_exchange_host sim_host.launch.py enable_perception:=true
+```
+
+Install the Python dependencies listed in
+[runtime/requirements-sim-host.txt](runtime/requirements-sim-host.txt) before enabling perception or running the
+collision-aware planning path. The real hardware backend and real-device launch files are still being organized and
+are not part of the current release.
+
+Run the runtime contract and package tests with:
+
+```bash
+runtime/scripts/test.sh
+```
 
 ## Dataset Release
 
@@ -103,6 +144,13 @@ while the bottom-up checkpoint is provided as a reference and comparison impleme
 ## Release and Repository Update Log
 
 This repository is released incrementally. The log records public artifacts and major repository reorganizations.
+
+### 2026-08-12
+
+- Added the self-contained MuJoCo and Host ROS 2 workspace under `runtime/`.
+- Packaged numerical perception and planning code as `arm_exchange_core`.
+- Removed shared-memory camera transport and legacy runtime data abstractions.
+- Added package-owned collision assets and simulation integration tests.
 
 ### 2026-08-11
 

@@ -1,0 +1,11 @@
+std_msgs/Header header
+string request_id
+bool success
+string message
+float64 cost
+string path_name
+float64 selected_roll
+int32 selected_ik_branch
+trajectory_msgs/JointTrajectory trajectory
+float64[] q_sweep_s
+trajectory_msgs/JointTrajectory q_sweep_trajectory

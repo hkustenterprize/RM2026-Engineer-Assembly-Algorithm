@@ -1,0 +1,6 @@
+std_msgs/Header header
+string request_id
+
+geometry_msgs/PoseStamped station_pose_arm_base
+sensor_msgs/JointState initial_joint_state
+string path_name

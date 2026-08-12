@@ -1,0 +1,40 @@
+# Trapezoidal Prism (等腰梯形推拉6面体)
+# Trapezoid: height=124mm, top=481mm, bottom=592mm, leg angle=75deg
+# Extrusion depth: 180mm
+# Orientation: Z up, bottom base (592mm) at Z=0, top base (481mm) at Z=0.124
+# X = base width, Y = extrusion depth, Z = trapezoid height
+# All dimensions in meters, centered at XY origin
+
+# Vertices
+# Bottom rectangle (z = 0, wider base 592mm x depth 180mm)
+v -0.2960  -0.0900   0.0000
+v  0.2960  -0.0900   0.0000
+v  0.2960   0.0900   0.0000
+v -0.2960   0.0900   0.0000
+# Top rectangle (z = 0.124, narrower base 481mm x depth 180mm)
+v -0.2405  -0.0900   0.1240
+v  0.2405  -0.0900   0.1240
+v  0.2405   0.0900   0.1240
+v -0.2405   0.0900   0.1240
+
+# Face normals
+vn  0.0000  0.0000 -1.0000
+vn  0.0000  0.0000  1.0000
+vn  0.0000 -1.0000  0.0000
+vn  0.0000  1.0000  0.0000
+vn -0.9121  0.0000  0.4100
+vn  0.9121  0.0000  0.4100
+
+# Faces (CCW winding from outside, outward normals)
+# Bottom (Z=0, -Z outward)
+f 1//1 4//1 3//1 2//1
+# Top (Z=0.124, +Z outward)
+f 5//2 6//2 7//2 8//2
+# Front (Y=-0.09, -Y outward)
+f 1//3 2//3 6//3 5//3
+# Back (Y=+0.09, +Y outward)
+f 3//4 4//4 8//4 7//4
+# Left (slanted, -X outward)
+f 1//5 5//5 8//5 4//5
+# Right (slanted, +X outward)
+f 2//6 3//6 7//6 6//6

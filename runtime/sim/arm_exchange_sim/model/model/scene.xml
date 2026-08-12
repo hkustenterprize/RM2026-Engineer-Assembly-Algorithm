@@ -1,0 +1,22 @@
+<mujoco model="scene">
+  <compiler angle="radian" meshdir="arm_assets" balanceinertia="true" discardvisual="false"/>
+  <option timestep="0.005" ls_iterations="20" gravity="0 0 -9.81" integrator="implicitfast" density="1.225"
+        viscosity="1.8e-5"/>
+  
+  <include file="chassis_config.xml"/>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <model name="piper_arm" file="arm.xml"/>
+  </asset>
+  
+  <worldbody>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <include file="chassis_body.xml"/>
+  </worldbody>
+
+</mujoco>

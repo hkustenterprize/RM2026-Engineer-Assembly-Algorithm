@@ -1,0 +1,148 @@
+<mujoco model="RM2026Arm">
+  <compiler angle="radian" coordinate="local"/>
+
+  <option gravity="0 0 -9.81"/>
+  <option integrator="implicitfast" timestep="0.001"/>
+
+  <asset>
+    <material name="blue" rgba="0.2 0.6 0.8 1"/>
+    <material name="grey" rgba="0.7 0.7 0.7 1"/>
+
+    <mesh name="chassisbody" file="model/chassis/chassisbody.obj"/>
+    <mesh name="energy_unit" file="model/field_assets/Energy_Unit.STL" />
+    <mesh name="gripper_left" file="model/arm/gripper_asset/gripper_left.obj" scale="0.001 0.001 0.001"/>
+    <mesh name="gripper_right" file="model/arm/gripper_asset/gripper_right.obj" scale="0.001 0.001 0.001"/>
+    <mesh name="gripper_base" file="model/arm/gripper_asset/gripper_base.obj" scale="0.001 0.001 0.001"/>
+
+
+  </asset>
+
+  <worldbody>
+    <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 0" dir="0 0 -1"/>
+  <body name="parallel_camera_mount" mocap="true">
+    <geom name="parallel_camera_mount_geom" type="box" size="0.03 0.16 0.02"
+          rgba="1 0.6 0 0.35" contype="0" conaffinity="0" mass="0"/>
+    <body name="second_camera_left_mount" pos="0 0.13 0">
+      <body name="second_camera_left_link">
+        <joint name="second_camera_left_yaw" type="hinge" axis="0 0 -1" limited="false"/>
+        <joint name="second_camera_left_pitch" type="hinge" axis="0 -1 0" limited="false"/>
+        <geom name="camera_left_geom" type="box" size="0.02 0.02 0.02"
+              rgba="1 0 0 1" contype="0" conaffinity="0" mass="0.001"/>
+        <!-- Match square debug camera output: 640x640 with horizontal FOV 60deg -> vertical FOV 60deg. -->
+        <camera name="second_camera" pos="0 0 0" quat="0.5 0.5 -0.5 -0.5" fovy="60"/>
+      </body>
+    </body>
+    <body name="second_camera_right_mount" pos="0 -0.13 0">
+      <body name="second_camera_right_link">
+        <joint name="second_camera_right_yaw" type="hinge" axis="0 0 -1" limited="false"/>
+        <joint name="second_camera_right_pitch" type="hinge" axis="0 -1 0" limited="false"/>
+        <geom name="camera_right_geom" type="box" size="0.02 0.02 0.02"
+              rgba="0 0 1 1" contype="0" conaffinity="0" mass="0.001"/>
+        <camera name="second_camera2" pos="0 0 0" quat="0.5 0.5 -0.5 -0.5" fovy="60"/>
+      </body>
+    </body>
+  </body>
+  <body name="chassis" pos="0.15 0.0 0.3">
+    <geom name="chassis_geom" type="mesh" mesh="chassisbody" pos="0.146 0 -0.16" rgba="0.5 0.5 0.5 1" mass="10"/>
+    <!-- 轮子: 直径134mm, 宽42mm, 两侧轮心距435mm, 前后轴距428mm -->
+    <geom name="wheel_fl" type="cylinder" size="0.067 0.021" pos="-0.068 -0.2175 -0.233" euler="1.5708 0 0" rgba="0.2 0.2 0.2 1" mass="0.5"/>
+    <geom name="wheel_fr" type="cylinder" size="0.067 0.021" pos="-0.068 0.2175 -0.233" euler="1.5708 0 0" rgba="0.2 0.2 0.2 1" mass="0.5"/>
+    <geom name="wheel_rl" type="cylinder" size="0.067 0.021" pos="0.360 -0.2175 -0.233" euler="1.5708 0 0" rgba="0.2 0.2 0.2 1" mass="0.5"/>
+    <geom name="wheel_rr" type="cylinder" size="0.067 0.021" pos="0.360 0.2175 -0.233" euler="1.5708 0 0" rgba="0.2 0.2 0.2 1" mass="0.5"/>
+    <!-- 中间悬空轮 -->
+    <geom name="wheel_ml" type="cylinder" size="0.067 0.021" pos="0.146 -0.2175 -0.20" euler="1.5708 0 0" rgba="0.2 0.2 0.2 1" mass="0.5"/>
+    <geom name="wheel_mr" type="cylinder" size="0.067 0.021" pos="0.146 0.2175 -0.20" euler="1.5708 0 0" rgba="0.2 0.2 0.2 1" mass="0.5"/>
+    <!-- 臂座立柱：joint1坐标系下 (-388,±232,-4.25) mm → chassis坐标系，φ37×H100 mm -->
+    <geom name="pillar_l" type="cylinder" size="0.0185 0.05" pos="0.388  0.232 -0.00425" rgba="0.6 0.6 0.6 1" mass="0.01"/>
+    <geom name="pillar_r" type="cylinder" size="0.0185 0.05" pos="0.388 -0.232 -0.00425" rgba="0.6 0.6 0.6 1" mass="0.01"/>
+    <joint name="chassis_x" type="slide" axis="1 0 0" range="-3 3" limited="false"/>
+    <joint name="chassis_y" type="slide" axis="0 1 0" range="-3 3" limited="false"/>
+    <joint name="chassis_yaw" type="hinge" axis="0 0 1" limited="false"/>
+
+    <body name="link1" pos="0 0 0" euler="0 0 3.14159">
+      <joint name="joint1" type="hinge" axis="0 0 1" range="-3.141592653589793 3.141592653589793" limited="true"/>
+        <geom name="link1_geom1" type="box" size="0.04 0.0315 0.015" pos="0 0 -.051" rgba="0.149 0.149 0.149 1" mass="0.741" />
+        <geom name="link1_geom2" type="cylinder" size="0.051 0.0315" pos="0 0 0" euler="1.5708 0 0" rgba="0.149 0.149 0.149 1" mass="0.351"/>
+
+        <body name="link2" pos="0 0 0" euler="-1.5708 0 -2.7525588">
+         <joint name="joint2" type="hinge" axis="0 0 1" range="0 2.2083" limited="true" />
+            <!-- DH-aligned helper capsules for planning/debug; not tied to MuJoCo body semantics -->
+            <geom name="cc_seg23" type="capsule" fromto="0 0 0.0643  0.38 0 0.0643"
+                  size="0.03" rgba="0 1 0 0.10" contype="0" conaffinity="0" mass="0"/>
+            <geom name="link2_geom1" type="cylinder" size="0.031 0.0225" pos="0 0 0.0643" euler="0 0 0" rgba="0.149 0.149 0.149 1"  mass="0.2"/>
+            <geom name="link2_geom2" type="box" size="0.19 0.03 0.0225" pos="0.19 0 0.0643" rgba="0.149 0.149 0.149 1" mass="0.62"/>
+            <geom name="link2_geom3" type="cylinder" size="0.03 0.0225" pos="0.38 0 0.0643" euler="0 0 0" rgba="0.149 0.149 0.149 1" mass="0.2"/>
+
+
+            <body name="link3" pos="0.38 0 0" euler="-3.14159 0 1.7870426">
+             <joint name="joint3" type="hinge" axis="0 0 1" range="0 2.3126" limited="true" />
+                <geom name="cc_seg34" type="capsule" fromto="0 0 0  0 0.4345 0"
+                      size="0.03" rgba="0 1 0 0.10" contype="0" conaffinity="0" mass="0"/>
+                <geom name="link3_geom1" type="cylinder" size="0.0305 0.0313" pos="0 0 0" euler="0 0 0" rgba="0.149 0.149 0.149 1" mass="0.9"/>
+                <geom name="link3_geom2" type="box" size="0.0305 0.102 0.0313" pos="0.0 0.102 0" euler="0 0 0" rgba="0.149 0.149 0.149 1" mass="0.8"/>
+                <camera name="main_camera" pos="-0.02 0.03 0" quat="0.5 0.5 -0.5 0.5" fovy="80"/>
+                    <body name="link4" pos="0 0.4345 0" euler="-1.5708 0 3.14159" >
+                    <joint name="joint4" type="hinge" axis="0 0 1" limited="false"/>
+                    <geom name="link4_geom1" type="box" size="0.0305  0.0433 0.1105" pos="0 0 -0.1105" euler="0 0 0" rgba="0.149 0.149 0.149 1" mass="1.2"/>
+                    <geom name="link4_geom2" type="cylinder" size="0.035 0.006" pos="0 0 -0.227" euler="0 0 1.57" rgba="0.878 0.878 0.878 1" mass=".3"/>
+                    <!-- <geom name="link4_geom2" type="box" size="0.02 0.0035 0.035" pos="0 0.0528 -0.01" euler="0 0 0" rgba="0 1 1 1" mass="0.01"/> -->
+                    <!-- <geom name="link4_geom3" type="box" size="0.02 0.0035 0.035" pos="0 -0.0528 -0.01" euler="0 0 0" rgba="0 1 1 1" mass="0.01"/> -->
+                        <body name="link5" pos="0 0 0" euler="1.5708 0 0">
+                        <joint name="joint5" type="hinge" axis="0 0 1"  range="-1.8326 1.8326" limited="true"/>
+                        <geom name="link5_geom1" type="cylinder" size="0.0205 0.0025" pos="0 0 0.0458" euler="0 0 0" rgba="0.3 0.3 0.3 0" mass="0.3"/>
+                        <geom name="link5_geom2" type="cylinder" size="0.0205 0.0025" pos="0 0 -0.0458" euler="0 0 0" rgba="0.3 0.3 0.3 0" mass="0.3"/>
+                            <body name="link6" pos="0 0 0" euler="-1.5708 0 0">
+                            <joint name="joint6" type="hinge" axis="0 0 1" limited="false"/>
+                            <inertial pos="0 0 0.072" mass="1.0" diaginertia="0.005 0.005 0.005"/>
+
+                            <geom name="cc_wrist_tcp" type="capsule" fromto="0 0 0  0 0 0.10"
+                                  size="0.035" rgba="0 1 0 0.10" contype="0" conaffinity="0" mass="0"/>
+                            <geom name="link6_geom2" type="cylinder" size="0.04 0.01" pos= "0 0 0.04" euler="0 0 0" rgba="0 0 0 1" mass="0.001"/>
+                            <geom name="gripper_base" type="mesh" mesh="gripper_base" pos="0 0 0.077" euler="1.5708 0 0" rgba="0 0 0 1" mass="0.5" />
+                              <body name="gripper" pos="0 0 0.077">
+                                <geom name="gripper_left" type="mesh" mesh="gripper_left" pos="0 -0.03 0" euler="1.5708 0 0" rgba="0 0 0 1" mass="0.15"/>
+                              </body>
+                              <body name="gripper_left_body" pos="0 0 0.077">
+                                <geom name="gripper_right" type="mesh" mesh="gripper_right" pos="0 0.03 0" euler="1.5708 0 0" rgba="0 0 0 1" mass="0.15"/>
+                              </body>
+                              <body name="energy_unit">
+                                <geom name="energy_unit" type="mesh" mesh="energy_unit" pos="-0.07 0 0.12" euler="0 1.5708 0" rgba="1 1 1 1" mass="0.01"/>
+                              </body>
+                            </body>
+                        </body>
+                    </body>
+
+            </body>
+        </body> 
+    </body>
+  </body>
+  </worldbody>
+  <equality>
+    <!-- <joint joint1="joint_gripper_left" joint2="joint_gripper_right" polycoef="0 -1 0 0 0"/> -->
+  </equality>
+
+  <actuator>
+  <motor name="motor_joint1" joint="joint1" gear="1"/>
+  <motor name="motor_joint2" joint="joint2" gear="1"/>
+  <motor name="motor_joint3" joint="joint3" gear="1"/>
+  <motor name="motor_joint4" joint="joint4" gear="1"/>
+  <motor name="motor_joint5" joint="joint5" gear="1"/>
+  <motor name="motor_joint6" joint="joint6" gear="1"/>
+  <!-- <position name="motor_joint7" joint="joint_gripper_right" kp="100" kv="1" gear="1" ctrllimited="false" ctrlrange="0.0001 0.045"/> -->
+  <position name="chassis_x" joint="chassis_x" kp="1000" kv="200" gear="1" ctrllimited="false"/>
+  <position name="chassis_y" joint="chassis_y" kp="1000" kv="200" gear="1" ctrllimited="false"/>
+  <position name="chassis_yaw" joint="chassis_yaw" kp="1000" kv="200" gear="1" ctrllimited="false"/>
+<position name="cam_left_yaw" joint="second_camera_left_yaw" kp="10" kv="2" gear="1"/>
+<position name="cam_left_pitch" joint="second_camera_left_pitch" kp="10" kv="2" gear="1"/>
+<position name="cam_right_yaw" joint="second_camera_right_yaw" kp="10" kv="2" gear="1"/>
+<position name="cam_right_pitch" joint="second_camera_right_pitch" kp="10" kv="2" gear="1"/>
+
+  <general name="j1" joint="joint1" gear="0"/>
+  <general name="j2" joint="joint2" gear="0"/>
+  <general name="j3" joint="joint3" gear="0"/>
+  <general name="j4" joint="joint4" gear="0"/>
+  <general name="j5" joint="joint5" gear="0"/>
+  <general name="j6" joint="joint6" gear="0"/>
+
+  </actuator>
+</mujoco>
