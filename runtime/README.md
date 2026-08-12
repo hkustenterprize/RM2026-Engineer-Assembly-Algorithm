@@ -22,6 +22,7 @@ runtime/
 
 More detailed package documentation:
 
+- [Numerical core and algorithm structure](core/README.md)
 - [Host nodes and data flow](host/README.md)
 - [Arm-exchange MuJoCo application](sim/arm_exchange_sim/README.md)
 - [Reusable MuJoCo engine](sim/mujoco_engine/README.md)
@@ -64,6 +65,12 @@ flowchart LR
 application plugins hosted inside that node, not additional ROS graph nodes. `arm_exchange_perception` is optional and
 is started only when `enable_perception:=true`; `operator_input` is likewise controlled by
 `enable_operator_input:=true`. The planning and task nodes are always started by `sim_host.launch.py`.
+
+`/host/arm/feedforward_wrench` is a reserved research interface for open-loop contact-force feedforward. The numerical
+mapping is implemented in the Host and simulation controller, but it is disabled in the default configuration and is
+not part of the validated assembly workflow. It does not provide force sensing or closed-loop force control. The
+[simulation package guide](sim/arm_exchange_sim/README.md#force-feedforward-research-interface) documents the intended
+design and its current limits.
 
 ### Backend Boundary
 

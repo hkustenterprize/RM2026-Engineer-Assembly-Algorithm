@@ -43,6 +43,8 @@ their order in the per-step callback sequence.
   `arm_exchange_interfaces/OperatorInputState`.
 - Subscribes `/host/arm/host_output` as
   `arm_exchange_interfaces/ArmHost2MCUMsg`.
+- Subscribes `/host/arm/feedforward_wrench` as
+  `arm_exchange_interfaces/ArmFeedforwardWrenchMsg`; this research interface is disabled by default.
 - Publishes `/mcu/arm/state` as `arm_exchange_interfaces/ArmMCU2HostMsg`.
 - Publishes `/mcu/arm/ctrl_start`, `/mcu/arm/ctrl_enter`,
   `/mcu/arm/ctrl_q`, and `/mcu/arm/ctrl_withdraw` to emulate MCU control frames.
@@ -58,6 +60,44 @@ their order in the per-step callback sequence.
   `sensor_msgs/CameraInfo` topics.
 - Subscribes `/debug/scene/exchange_station/set_state` as
   `arm_exchange_interfaces/ExchangeStationState`.
+
+## Force Feedforward Research Interface
+
+The runtime reserves an open-loop force-feedforward path for studying contact retention during the sliding, P-axis and
+manual Q-axis stages. Its intended purpose is to superimpose a small contact wrench on position tracking, rather than
+to replace the geometric trajectory or the lower-controller feedback loop.
+
+The Host starts from a configured nominal pressure direction in the moving assembly frame and a nominal force
+magnitude. At the current task state, it estimates the contact-point tangent from the neighboring task pose and removes
+the component of the requested force parallel to that tangent:
+
+```text
+f_projected = f_nominal - t_hat (t_hat^T f_nominal)
+```
+
+This projection keeps the feedforward force in the local normal plane so it does not directly oppose the prescribed
+task motion. The retained-force ratio is checked before publication, and force and torque magnitudes are clamped. The
+force is then expressed in the true TCP frame. If the configured contact point is offset from the TCP origin, the
+corresponding moment is computed as `contact_offset x force`.
+
+`ArmFeedforwardWrenchMsg` carries the enable flag, Host state, retained-force ratio, TCP force and TCP torque. The
+simulation controller accepts it only while Host control is enabled, the message is fresh, and the reported Host state
+is one of the supported contact stages. `ArmModel.external_wrench_torque()` maps the TCP wrench to an equivalent joint
+torque. The simulated torque command has the conceptual form
+
+```text
+tau_command = tau_inverse_dynamics + tau_contact_feedforward + tau_PID
+```
+
+before actuator sign conversion and torque limiting. A timeout returns the contact term to zero if wrench updates stop.
+These gates prevent a stale command from remaining active after a state transition or loss of Host authority.
+
+This path is **not enabled in the released task workflow**. The tracked configuration sets
+`planning.exchange.feedforward_wrench.enabled: false`; there is no force/torque sensor feedback, contact-state
+estimator or closed-loop force controller in the public runtime. The message, task-stage projection and simulator-side
+torque mapping are retained only as an experimental interface for future force-control research. Enabling it requires
+independent validation of frame conventions, force direction, contact location, controller stability and hardware
+limits; simulation values must not be transferred directly to a physical robot.
 
 ## Operator Input
 
@@ -102,7 +142,7 @@ additional TF children. Solid TF edges vary during simulation, while dashed TF e
 flowchart TD
   subgraph tf["ROS TF tree"]
     world["mujoco_world"] --> base["base_link"]
-    world --> station_gt["exchange_station<br/>simulation ground truth"]
+    world --> station_gt["exchange_station<br/> simulation ground truth"]
     base -. identity .-> chassis["chassis"]
     chassis -. "Rz(pi)" .-> arm["arm_base (b)"]
     arm --> reduced["camera_reduced_frame"]
@@ -118,10 +158,11 @@ flowchart TD
     optical["active optical frame (c)"] -. "PnP observation" .-> reference["active assembly reference (E)"]
     arm_model["arm_base (b)"] -. "FK(q)" .-> frame6["DH frame 6"]
     frame6 -. "configured tool offset" .-> tcp["current TCP (t)"]
-    reference -. "task state / progress" .-> task["moving task frame (s)"]
-    task -. "roll and tool relation" .-> target["target TCP pose (t)"]
+    reference -. "task state and roll" .-> task["moving task frame (s)"]
+    task -. "fixed tool transform" .-> target["target TCP frame (t)"]
   end
 
+  station_gt -. "same station / estimated reference" .-> reference
   lo -. "selected camera" .-> optical
   ro -. "selected camera" .-> optical
   arm -. "TF composition" .-> arm_model

@@ -41,6 +41,10 @@ The planning node owns the robot model, collision environment and Type II/III pl
 state and is the only component that turns operator events into planning or execution requests. This separation keeps
 the geometric planners independent of confirmation, manual insertion and recovery semantics.
 
+The task node also publishes the disabled-by-default `/host/arm/feedforward_wrench` research interface. Its intended
+force projection, simulator-side torque mapping and current validation boundary are documented in the
+[simulation guide](../sim/arm_exchange_sim/README.md#force-feedforward-research-interface).
+
 The public launch file starts all Host nodes required by the selected options. See the [runtime guide](../README.md)
 for launch arguments and the [simulation guide](../sim/arm_exchange_sim/README.md) for operator controls and ROS topic
 inspection.
