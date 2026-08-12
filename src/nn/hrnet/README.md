@@ -21,7 +21,6 @@ hrnet/
 ├── data/
 │   ├── convert_yolo_to_coco.py
 │   └── visualize_dataset.py
-├── scripts/                  # 常用命令的薄封装
 ├── tools/
 │   ├── train.py              # 基于 MMEngine Runner 的训练入口
 │   ├── infer.py              # 图片与视频共用的推理入口
@@ -39,8 +38,8 @@ hrnet/
 以及与两组配置兼容的 OpenMMLab 依赖。首次安装运行：
 
 ```bash
-cd public_archive
 bash src/nn/setup_env.sh
+source src/nn/.venv/bin/activate
 ```
 
 安装脚本先同步普通依赖，再编译 MMCV 的 CPU 扩展。LiteHRNet 和 Ultralytics YOLO 的 GPU 计算由
@@ -49,13 +48,12 @@ CUDA Toolkit。由于 PyPI 发布的 `xtcocotools` wheel 仍使用 NumPy 1.x ABI
 环境中从源码重编译该扩展。安装结束后会加载两份配置并构建模型和数据增强组件，以检查环境完整性。
 
 因此，首次创建环境或删除 `src/nn/.venv` 后应运行 `bash src/nn/setup_env.sh`，不能只运行一次普通的
-`uv sync`。环境建立完成后，可以正常使用 `uv run`；锁文件未变化时无需重复编译上述扩展。
+`uv sync`。环境建立完成后，可以直接使用已注册的 `rm26-nn` 命令；锁文件未变化时无需重复编译上述扩展。
 
-日常 Python 命令通过 uv 运行：
+检查安装：
 
 ```bash
-PYTHONPATH=./src uv run --project src/nn \
-  python -m nn.hrnet.tools.check_environment
+rm26-nn check
 ```
 
 ## Data Conversion
@@ -71,21 +69,12 @@ dataset_root/
 转换脚本将标签整理为 MMPose 使用的 COCO keypoint JSON，并保留关键点原始可见性和 in-frame 标记：
 
 ```bash
-PYTHONPATH=./src uv run --project src/nn \
-  python -m nn.hrnet.data.convert_yolo_to_coco DATASET_ROOT \
+rm26-nn hrnet convert DATASET_ROOT \
   --output ANNOTATION_DIR
 ```
 
-也可以通过薄封装运行：
-
-```bash
-DATASET_ROOT=/absolute/path/to/dataset \
-OUTPUT_DIR=/absolute/path/to/annotations \
-bash src/nn/hrnet/scripts/convert_dataset.sh
-```
-
-`nn.hrnet.data.visualize_dataset` 可用于抽查转换后的 COCO 标注或原始 YOLO pose 标签，具体参数见
-`PYTHONPATH=./src uv run --project src/nn python -m nn.hrnet.data.visualize_dataset --help`。
+`hrnet visualize` 可用于抽查转换后的 COCO 标注或原始 YOLO pose 标签，具体参数见
+`rm26-nn hrnet visualize --help`。
 
 ## Training
 
@@ -95,53 +84,59 @@ bash src/nn/hrnet/scripts/convert_dataset.sh
 export HRNET_DATA_ROOT=/absolute/path/to/dataset
 export HRNET_ANN_ROOT=/absolute/path/to/annotations
 
-bash src/nn/hrnet/scripts/train_litehrnet.sh td-hm_litehrnet18_exchange12_v11.0.py
-bash src/nn/hrnet/scripts/train_litehrnet.sh td-hm_litehrnet30_exchange12_v11.0.py
+rm26-nn hrnet train \
+  src/nn/hrnet/configs/td-hm_litehrnet18_exchange12_v11.0.py
+rm26-nn hrnet train \
+  src/nn/hrnet/configs/td-hm_litehrnet30_exchange12_v11.0.py
 ```
 
-训练输出默认写入 `runs/<config-name>/`。第二个位置参数可以覆盖输出目录。需要加载初始权重时，设置
-`HRNET_LOAD_FROM`；不设置时从随机初始化开始训练。
+训练输出默认写入 `runs/<config-name>/`。可以在配置名后使用 `--work-dir` 或 `--resume` 覆盖运行参数。
+需要加载初始权重时，设置 `HRNET_LOAD_FROM`；不设置时从随机初始化开始训练。
 
 训练前可检查随机增强后的样本：
 
 ```bash
-bash src/nn/hrnet/scripts/preview_augmentations.sh td-hm_litehrnet18_exchange12_v11.0.py
+rm26-nn hrnet preview \
+  src/nn/hrnet/configs/td-hm_litehrnet18_exchange12_v11.0.py \
+  --output-dir /tmp/hrnet-augmentation-preview
 ```
 
 ## Inference
 
-图片和视频共用 [tools/infer.py](tools/infer.py)，两个 shell 脚本只负责组织参数。运行前设置检测模型与
-关键点模型权重：
-
-```bash
-export YOLO_WEIGHTS=/absolute/path/to/yolo_detect.pt
-export HRNET_CHECKPOINT=/absolute/path/to/litehrnet.pth
-```
+图片和视频共用 [tools/infer.py](tools/infer.py) 及同一个 `hrnet infer` 子命令。
 
 图片推理：
 
 ```bash
-bash src/nn/hrnet/scripts/infer_images.sh image_1.jpg image_2.jpg
+rm26-nn hrnet infer \
+  --yolo-weights /absolute/path/to/yolo_detect.pt \
+  --hrnet-config src/nn/hrnet/configs/td-hm_litehrnet18_exchange12_v11.0.py \
+  --hrnet-checkpoint /absolute/path/to/litehrnet.pth \
+  --output-dir /tmp/hrnet-inference \
+  --images image_1.jpg image_2.jpg
 ```
 
 视频推理：
 
 ```bash
-SOURCE=input.mp4 OUTPUT=output.mp4 bash src/nn/hrnet/scripts/infer_video.sh
+rm26-nn hrnet infer \
+  --yolo-weights /absolute/path/to/yolo_detect.pt \
+  --hrnet-config src/nn/hrnet/configs/td-hm_litehrnet18_exchange12_v11.0.py \
+  --hrnet-checkpoint /absolute/path/to/litehrnet.pth \
+  --source input.mp4 \
+  --output-video output.mp4
 ```
 
 `YOLO_WEIGHTS` 可指向 PyTorch、ONNX 等单文件权重，也可指向包含 `.xml`、`.bin` 和
-`metadata.yaml` 的 Ultralytics OpenVINO 模型目录。默认使用
-`configs/td-hm_litehrnet18_exchange12_v11.0.py`、检测类别 `1`，检测器运行于 CPU，LiteHRNet 运行于
-`cuda:0`。可分别通过 `HRNET_CONFIG`、`BBOX_CLASS_ID`、`DETECTOR_DEVICE` 与 `DEVICE` 覆盖。
+`metadata.yaml` 的 Ultralytics OpenVINO 模型目录。检测类别默认为 `1`，检测器运行于 CPU，LiteHRNet
+运行于 `cuda:0`；对应参数可通过 `--bbox-class-id`、`--detector-device` 与 `--device` 覆盖。
 
 ## OpenVINO Export
 
 导出工具先生成 ONNX，再转换为 OpenVINO IR：
 
 ```bash
-PYTHONPATH=./src uv run --project src/nn \
-  python -m nn.hrnet.tools.export_openvino \
+rm26-nn hrnet export \
   --config src/nn/hrnet/configs/td-hm_litehrnet30_exchange12_v11.0.py \
   --checkpoint checkpoints/litehrnet30_best.pth \
   --output-dir exports/litehrnet30

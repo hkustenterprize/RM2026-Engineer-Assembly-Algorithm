@@ -12,7 +12,6 @@ def _host_nodes(
     enable_perception,
     enable_operator_input,
     keyboard_device,
-    mouse_device,
 ):
     nodes = [
         Node(
@@ -50,7 +49,6 @@ def _host_nodes(
             parameters=[
                 {
                     "keyboard_device": keyboard_device,
-                    "mouse_device": mouse_device,
                 }
             ],
         )
@@ -80,11 +78,6 @@ def generate_launch_description():
         default_value="",
         description="Linux keyboard event device used by operator_input.",
     )
-    mouse_device_arg = DeclareLaunchArgument(
-        "mouse_device",
-        default_value="",
-        description="Optional Linux mouse event device used by operator_input.",
-    )
     sim_config_arg = DeclareLaunchArgument(
         "sim_config_path",
         default_value=sim_share + "/config/simulation_config.yaml",
@@ -100,14 +93,12 @@ def generate_launch_description():
     enable_perception = LaunchConfiguration("enable_perception")
     enable_operator_input = LaunchConfiguration("enable_operator_input")
     keyboard_device = LaunchConfiguration("keyboard_device")
-    mouse_device = LaunchConfiguration("mouse_device")
 
     return LaunchDescription([
         camera_view_arg,
         enable_perception_arg,
         enable_operator_input_arg,
         keyboard_device_arg,
-        mouse_device_arg,
         sim_config_arg,
         sim_launch,
         *_host_nodes(
@@ -115,6 +106,5 @@ def generate_launch_description():
             enable_perception,
             enable_operator_input,
             keyboard_device,
-            mouse_device,
         ),
     ])

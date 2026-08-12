@@ -91,7 +91,7 @@ model = dict(
         type="HeatmapHeadWithVisibility",
         in_channels=40,
         out_channels=12,
-        deconv_out_channels=(40,),
+        deconv_out_channels=(256,),
         deconv_kernel_sizes=(4,),
         loss=dict(type="KeypointMSELoss", use_target_weight=False),
         decoder=codec,

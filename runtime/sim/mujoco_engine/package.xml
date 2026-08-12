@@ -4,8 +4,8 @@
   <name>mujoco_engine</name>
   <version>0.1.0</version>
   <description>Reusable ROS 2 execution engine for configuration-driven MuJoCo simulations.</description>
-  <maintainer email="enterprize@ust.hk">HKUST ENTERPRIZE</maintainer>
-  <license>Apache-2.0</license>
+  <maintainer email="zguobd@connect.ust.hk">HKUST ENTERPRIZE</maintainer>
+  <license>MIT</license>
 
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>

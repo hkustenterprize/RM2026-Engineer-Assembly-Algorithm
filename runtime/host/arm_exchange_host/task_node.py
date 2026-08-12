@@ -10,12 +10,11 @@ from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
-from std_msgs.msg import String
+from std_msgs.msg import Empty, String
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from arm_exchange_interfaces.msg import (
     ArmCtrlAdvanceMsg,
-    ArmCtrlEnterMsg,
     ArmCtrlQMsg,
     ArmCtrlStartMsg,
     ArmCtrlWithdrawMsg,
@@ -288,7 +287,7 @@ class TaskNode(Node):
         )
         self.create_subscription(ArmMCU2HostMsg, "/mcu/arm/state", self._on_mcu_state, 10)
         self.create_subscription(ArmCtrlStartMsg, "/mcu/arm/ctrl_start", self._on_ctrl_start, 10)
-        self.create_subscription(ArmCtrlEnterMsg, "/mcu/arm/ctrl_enter", self._on_ctrl_enter, 10)
+        self.create_subscription(Empty, "/mcu/arm/ctrl_enter", self._on_ctrl_enter, 10)
         self.create_subscription(ArmCtrlAdvanceMsg, "/mcu/arm/ctrl_advance", self._on_ctrl_advance, latest_control_qos)
         self.create_subscription(ArmCtrlQMsg, "/mcu/arm/ctrl_q", self._on_ctrl_q, latest_control_qos)
         self.create_subscription(ArmCtrlWithdrawMsg, "/mcu/arm/ctrl_withdraw", self._on_ctrl_withdraw, 10)
@@ -350,7 +349,7 @@ class TaskNode(Node):
         else:
             self._request_approach_plan()
 
-    def _on_ctrl_enter(self, _msg: ArmCtrlEnterMsg) -> None:
+    def _on_ctrl_enter(self, _msg: Empty) -> None:
         with self._lock:
             if not self._accept_mcu_control():
                 return

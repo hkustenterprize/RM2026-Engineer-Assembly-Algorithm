@@ -5,112 +5,32 @@ The project supports a semi-automatic energy-unit assembly workflow: the upper c
 approach planning, constrained motion planning and recovery planning, while the operator performs insertion with a
 custom controller.
 
-## Overview
+## Project Contents
 
-The public archive contains the following parts:
-
-- Blender scene and synthetic-data generation.
-- YOLO pose and object-detection training pipelines.
-- MMPose LiteHRNet top-down keypoint training, inference and OpenVINO export.
-- Dataset conversion and visualization utilities used by the vision pipelines.
-
-The accompanying technical report also covers PnP pose estimation, motion planning, task orchestration and MuJoCo
-simulation. A minimal MuJoCo and Host integration workspace is included for reproducible simulation-based testing.
-The real backend is still being organized and is not part of the current release.
-
-The technical report provides the algorithmic background and system design:
-
-- [RM2026 Engineer Assembly Algorithm](doc/RM2026-Engineer-Assembly-Algorithm.pdf)
-
-The public implementation is organized as follows:
+The repository publishes the synthetic-data pipeline, vision-model training code, numerical perception and planning
+algorithms, and a self-contained ROS 2 + MuJoCo integration workspace. The current runtime release targets simulation;
+the real-hardware backend is still being organized.
 
 ```text
-public_archive/
-├── doc/                         # Technical report
-├── src/
-│   ├── blender/                 # Blender rendering and dataset composition
-│   │   ├── exchange.blend       # Public Blender scene
-│   │   ├── configs/             # Rendering configuration and field reference
-│   │   ├── pipeline/            # Rendering, composition and visualization
-│   │   └── setup_blender_env.sh
-│   ├── nn/                      # Shared uv environment for vision models
-│   │   ├── __main__.py          # Unified training, inference and export CLI
-│   │   ├── pyproject.toml
-│   │   ├── uv.lock
-│   │   ├── setup_env.sh
-│   │   ├── utils.py             # Configuration-driven object construction
-│   │   ├── yolo/                # Ultralytics YOLO pose/detection pipeline
-│   │   └── hrnet/               # MMPose LiteHRNet pipeline
-├── runtime/
-│   ├── interfaces/              # ROS 2 task and controller interfaces
-│   ├── core/                    # Numerical perception and planning package
-│   ├── sim/                     # Reusable MuJoCo engine and task simulation package
-│   ├── host/                    # Perception, planning and task nodes
-│   └── scripts/                 # Workspace build and environment setup
+./
+├── doc/                  # Open-source technical report
+├── src/blender/          # Rendering and synthetic-data generation
+├── src/nn/               # YOLO and LiteHRNet training/export workspace
+├── runtime/              # ROS 2 Host, planning core and MuJoCo simulation
 ├── LICENSE
 └── README.md
 ```
 
-Detailed instructions are maintained next to each implementation:
+All relative paths and commands in the documentation assume that the current working directory is the repository root.
 
+## Documentation
+
+- Start with the [runtime setup and launch guide](runtime/README.md) to run the complete ROS 2 + MuJoCo workflow.
+- [Technical report](doc/RM2026-Engineer-Assembly-Algorithm.pdf)
 - [Blender data generation](src/blender/README.md)
 - [Shared neural-network environment](src/nn/README.md)
 - [YOLO pose and detection](src/nn/yolo/README.md)
 - [LiteHRNet](src/nn/hrnet/README.md)
-
-## Environment
-
-YOLO and LiteHRNet share the uv environment defined in `src/nn`:
-
-```bash
-cd public_archive
-bash src/nn/setup_env.sh
-source src/nn/.venv/bin/activate
-rm26-nn check
-```
-
-Blender uses its bundled Python environment and is fixed to Blender 4.5.0. Install its rendering dependencies with:
-
-```bash
-cd public_archive/src/blender
-bash setup_blender_env.sh
-```
-
-See the module READMEs for model-specific dependencies, dataset conversion and execution commands.
-
-## MuJoCo and Host Integration
-
-The public ROS 2 workspace uses standard `sensor_msgs/Image` messages for simulated camera frames and does not depend on
-`shm-tools`, `shm_msgs`, or a shared-memory bridge. Create the machine-local configuration from the tracked template,
-then build and source the workspace:
-
-```bash
-cd public_archive
-cp runtime/core/arm_exchange_core/system_config.example.yaml \
-  runtime/core/arm_exchange_core/system_config.yaml
-# Adjust model paths and OpenVINO devices in system_config.yaml when needed.
-runtime/scripts/build.sh
-source runtime/scripts/setup_env.sh
-ros2 launch arm_exchange_host sim_host.launch.py camera_view:=false
-```
-
-The default launch starts MuJoCo, the planning node and the task node. Model-based perception is optional because its
-checkpoint files are released separately:
-
-```bash
-ros2 launch arm_exchange_host sim_host.launch.py enable_perception:=true
-```
-
-Install the Python dependencies listed in
-[runtime/requirements-sim-host.txt](runtime/requirements-sim-host.txt) before enabling perception or running the
-collision-aware planning path. The real hardware backend and real-device launch files are still being organized and
-are not part of the current release.
-
-Run the runtime contract and package tests with:
-
-```bash
-runtime/scripts/test.sh
-```
 
 ## Dataset Release
 
@@ -144,6 +64,14 @@ while the bottom-up checkpoint is provided as a reference and comparison impleme
 ## Release and Repository Update Log
 
 This repository is released incrementally. The log records public artifacts and major repository reorganizations.
+
+### 2026-08-13
+
+- Consolidated the YOLO and LiteHRNet tools behind the shared `rm26-nn` command-line interface.
+- Expanded the ROS 2 runtime, MuJoCo engine and simulation architecture documentation.
+- Simplified operator input to the keyboard controls consumed by the simulation and removed an unused custom event
+  message.
+- Aligned ROS package metadata with the repository maintainer and MIT license.
 
 ### 2026-08-12
 

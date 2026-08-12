@@ -21,7 +21,7 @@ yolo/
 
 两个训练 YAML 都是自包含配置。`train_pose.yaml` 定义关键点损失和姿态增强；`train_detect.yaml` 定义检测损失、目标框裁剪、加权裁剪选择以及分组 Albumentations 增强。
 
-增强项使用 `src/utils.py` 中的配置驱动对象工厂构造，YAML 中的 `_class_name` 对应目标类的完整名称，其余字段直接对应构造函数参数：
+增强项使用 `nn.utils` 中的配置驱动对象工厂构造，YAML 中的 `_class_name` 对应目标类的完整名称，其余字段直接对应构造函数参数：
 
 ```yaml
 GaussianBlur:
@@ -45,35 +45,30 @@ dataset_root/
 姿态数据集包含 `pillar`、`exchange` 两类和 12 个关键点。检测训练只使用同一数据集中的目标框标注；如需要单独的检测数据集，可以执行：
 
 ```bash
-PYTHONPATH=./src uv run --project src/nn \
-  python -m nn.yolo.pose2detect \
+rm26-nn yolo pose2detect \
   --source /absolute/path/to/exchange_pose \
   --output /absolute/path/to/exchange_detect
 ```
 
 ## 训练
 
-YOLO 与 LiteHRNet 共用 `src/nn` 下的 uv 环境。以下命令均从仓库根目录运行，并将 `src` 作为 Python 导入根目录：
+YOLO 与 LiteHRNet 共用 `src/nn` 下的 uv 环境。运行 `source src/nn/.venv/bin/activate` 后，以下命令均从
+仓库根目录执行：
 
 ```bash
-cd public_archive
-PYTHONPATH=./src uv run --project src/nn \
-  python -m nn.yolo.train.train \
+rm26-nn yolo train \
   --config src/nn/yolo/configs/train_pose.yaml
 ```
 
 ```bash
-cd public_archive
-PYTHONPATH=./src uv run --project src/nn \
-  python -m nn.yolo.train.train \
+rm26-nn yolo train \
   --config src/nn/yolo/configs/train_detect.yaml
 ```
 
 数据、模型和训练参数可以通过命令行覆盖：
 
 ```bash
-PYTHONPATH=./src uv run --project src/nn \
-  python -m nn.yolo.train.train \
+rm26-nn yolo train \
   --config src/nn/yolo/configs/train_pose.yaml \
   --data /absolute/path/to/dataset.yaml \
   --model /absolute/path/to/yolo26s-pose.pt \
@@ -86,8 +81,7 @@ PYTHONPATH=./src uv run --project src/nn \
 ## OpenVINO 导出
 
 ```bash
-PYTHONPATH=./src uv run --project src/nn \
-  python -m nn.yolo.export_openvino \
+rm26-nn yolo export \
   --weights /absolute/path/to/best.pt \
   --imgsz 640
 ```

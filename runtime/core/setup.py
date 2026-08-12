@@ -22,8 +22,8 @@ setup(
     install_requires=["setuptools"],
     zip_safe=False,
     maintainer="HKUST ENTERPRIZE",
-    maintainer_email="enterprize@ust.hk",
+    maintainer_email="zguobd@connect.ust.hk",
     description="Numerical perception, planning, and robot-model algorithms for arm exchange.",
-    license="Apache-2.0",
+    license="MIT",
     tests_require=["pytest"],
 )

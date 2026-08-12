@@ -4,7 +4,6 @@ import math
 
 from arm_exchange_interfaces.msg import (
     ArmCtrlAdvanceMsg,
-    ArmCtrlEnterMsg,
     ArmCtrlGimbalControlMsg,
     ArmCtrlQMsg,
     ArmCtrlStartMsg,
@@ -16,7 +15,7 @@ from arm_exchange_interfaces.msg import (
 import mujoco
 from geometry_msgs.msg import Vector3
 from mujoco_engine.plugin_base import BasePlugin, PluginContext, PluginSetupContext
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, Empty, String
 
 
 def _wrap_pi(value: float) -> float:
@@ -123,7 +122,7 @@ class OperatorLogicPlugin(BasePlugin):
         self.chassis_pub = node.create_publisher(Vector3, self.chassis_state_topic, 10)
         self.host_enabled_pub = node.create_publisher(Bool, self.host_enabled_topic, 10)
         self.ctrl_start_pub = node.create_publisher(ArmCtrlStartMsg, self.ctrl_start_topic, 10)
-        self.ctrl_enter_pub = node.create_publisher(ArmCtrlEnterMsg, self.ctrl_enter_topic, 10)
+        self.ctrl_enter_pub = node.create_publisher(Empty, self.ctrl_enter_topic, 10)
         self.ctrl_advance_pub = node.create_publisher(ArmCtrlAdvanceMsg, self.ctrl_advance_topic, 10)
         self.ctrl_gimbal_pub = node.create_publisher(ArmCtrlGimbalControlMsg, self.ctrl_gimbal_topic, 10)
         self.ctrl_q_pub = node.create_publisher(ArmCtrlQMsg, self.ctrl_q_topic, 10)
@@ -288,9 +287,7 @@ class OperatorLogicPlugin(BasePlugin):
         self.ctrl_start_pub.publish(msg)
 
     def _publish_enter(self, context: PluginContext) -> None:
-        msg = ArmCtrlEnterMsg()
-        msg.header.stamp = context.node.get_clock().now().to_msg()
-        self.ctrl_enter_pub.publish(msg)
+        self.ctrl_enter_pub.publish(Empty())
 
     def _publish_advance(self, context: PluginContext, active: bool) -> None:
         msg = ArmCtrlAdvanceMsg()

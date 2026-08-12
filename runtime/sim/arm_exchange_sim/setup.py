@@ -25,9 +25,9 @@ setup(
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="HKUST ENTERPRIZE",
-    maintainer_email="enterprize@ust.hk",
+    maintainer_email="zguobd@connect.ust.hk",
     description="MuJoCo ROS2 simulation environment for the arm exchange task.",
-    license="Apache-2.0",
+    license="MIT",
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [

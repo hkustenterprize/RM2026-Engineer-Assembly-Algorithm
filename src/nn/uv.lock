@@ -1188,7 +1188,7 @@ wheels = [
 [[package]]
 name = "rm26-exchange-nn"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "albumentations" },
     { name = "mmcv" },

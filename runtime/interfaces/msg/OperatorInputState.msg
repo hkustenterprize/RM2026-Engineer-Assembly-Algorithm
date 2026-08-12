@@ -21,8 +21,3 @@ bool i
 bool j
 bool k
 bool l
-bool x
-
-float32 mouse_dx
-float32 mouse_dy
-float32 mouse_wheel

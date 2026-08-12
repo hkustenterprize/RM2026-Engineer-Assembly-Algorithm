@@ -10,7 +10,6 @@ find_package(trajectory_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ArmCtrlAdvanceMsg.msg"
-  "msg/ArmCtrlEnterMsg.msg"
   "msg/ArmCtrlGimbalControlMsg.msg"
   "msg/ArmCtrlQMsg.msg"
   "msg/ArmCtrlStartMsg.msg"

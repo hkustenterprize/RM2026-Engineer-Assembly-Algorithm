@@ -1,4 +1,4 @@
-"""Small configuration-driven object factory shared by public training tools."""
+"""Small configuration-driven object factory shared by training tools."""
 
 import importlib
 from collections.abc import Mapping
@@ -36,10 +36,10 @@ def make_object_from_config(config: Any) -> Any:
             return make_object(
                 config["_class_name"],
                 {
-                    k: make_object_from_config(v)
-                    for k, v in config.items()
-                    if k != "_class_name"
-                }
+                    key: make_object_from_config(value)
+                    for key, value in config.items()
+                    if key != "_class_name"
+                },
             )
         return {key: make_object_from_config(value) for key, value in config.items()}
     return config

@@ -4,8 +4,8 @@
   <name>arm_exchange_host</name>
   <version>0.1.0</version>
   <description>Host-side ROS2 nodes for arm exchange perception, planning, and task control.</description>
-  <maintainer email="enterprize@ust.hk">HKUST ENTERPRIZE</maintainer>
-  <license>Apache-2.0</license>
+  <maintainer email="zguobd@connect.ust.hk">HKUST ENTERPRIZE</maintainer>
+  <license>MIT</license>
 
   <depend>arm_exchange_interfaces</depend>
   <depend>arm_exchange_core</depend>

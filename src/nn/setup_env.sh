@@ -2,9 +2,7 @@
 set -euo pipefail
 
 NN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC_ROOT="$(cd "${NN_ROOT}/.." && pwd)"
 cd "${NN_ROOT}"
-export PYTHONPATH="${SRC_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 export UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-300}"
 export NO_ALBUMENTATIONS_UPDATE=1
 
@@ -39,4 +37,4 @@ uv pip install --python "${NN_ROOT}/.venv/bin/python" \
   --no-build-isolation \
   "xtcocotools==1.14.3"
 
-uv run python -m nn.hrnet.tools.check_environment
+uv run rm26-nn check

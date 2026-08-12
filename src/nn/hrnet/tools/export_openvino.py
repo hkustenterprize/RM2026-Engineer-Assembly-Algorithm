@@ -21,8 +21,7 @@ unless ``--skip-openvino`` is used.
 
 Example::
 
-  PYTHONPATH=./src uv run --project src/nn \\
-    python -m nn.hrnet.tools.export_openvino \\
+  rm26-nn hrnet export \\
     --config src/nn/hrnet/configs/td-hm_litehrnet30_exchange12_v11.0.py \\
     --checkpoint checkpoints/litehrnet30_best.pth \\
     --output-dir exports/litehrnet30 \\

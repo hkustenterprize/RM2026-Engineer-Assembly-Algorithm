@@ -6,7 +6,7 @@ import random
 import numpy as np
 from ultralytics.data.augment import BaseTransform, Format, LetterBox
 
-from utils import make_object_from_config
+from nn.utils import make_object_from_config
 
 
 def _ordered_range(value, cast=float, lower=0):

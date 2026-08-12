@@ -15,9 +15,9 @@ setup(
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="HKUST ENTERPRIZE",
-    maintainer_email="enterprize@ust.hk",
+    maintainer_email="zguobd@connect.ust.hk",
     description="Reusable ROS 2 execution engine for configuration-driven MuJoCo simulations.",
-    license="Apache-2.0",
+    license="MIT",
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [

@@ -4,8 +4,8 @@
   <name>arm_exchange_sim</name>
   <version>0.1.0</version>
   <description>MuJoCo ROS2 simulation environment for the arm exchange task.</description>
-  <maintainer email="enterprize@ust.hk">HKUST ENTERPRIZE</maintainer>
-  <license>Apache-2.0</license>
+  <maintainer email="zguobd@connect.ust.hk">HKUST ENTERPRIZE</maintainer>
+  <license>MIT</license>
 
   <depend>arm_exchange_core</depend>
   <depend>arm_exchange_interfaces</depend>

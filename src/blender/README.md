@@ -43,8 +43,7 @@ YOLO Pose 数据集
 渲染流水线固定使用 Blender 4.5.0。安装脚本会下载 Blender 4.5.0，并使用其内置 Python 3.11 安装渲染端所需的 `numpy`、`opencv-python-headless` 和 `PyYAML`。公开场景位于当前目录的 `exchange.blend`：
 
 ```bash
-cd public_archive/src/blender
-bash setup_blender_env.sh
+bash src/blender/setup_blender_env.sh
 ```
 
 ## 渲染
@@ -52,7 +51,6 @@ bash setup_blender_env.sh
 渲染入口使用当前目录的公开 Blender 场景文件：
 
 ```bash
-cd public_archive
 blender -b src/blender/exchange.blend \
   -P src/blender/pipeline/render_dataset.py -- \
   --config src/blender/configs/example.yaml \
@@ -78,7 +76,6 @@ rendered_assets/
 将一个或多个 Blender 输出目录合成为训练数据集：
 
 ```bash
-cd public_archive
 uv run --project src/nn python src/blender/pipeline/compose_dataset.py \
   --blender_dir /absolute/path/to/rendered_assets \
   --output_dir /absolute/path/to/exchange_pose

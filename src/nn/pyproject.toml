@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=69,<81"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "rm26-exchange-nn"
 version = "0.1.0"
@@ -23,6 +27,9 @@ dependencies = [
     "xtcocotools==1.14.3",
 ]
 
+[project.scripts]
+rm26-nn = "nn.__main__:main"
+
 [project.optional-dependencies]
 export = [
     "onnx>=1.17",
@@ -46,7 +53,19 @@ torch = { index = "pytorch-cu130" }
 torchvision = { index = "pytorch-cu130" }
 
 [tool.uv]
-package = false
+package = true
+
+[tool.setuptools]
+package-dir = { nn = "." }
+packages = [
+    "nn",
+    "nn.hrnet",
+    "nn.hrnet.custom",
+    "nn.hrnet.data",
+    "nn.hrnet.tools",
+    "nn.yolo",
+    "nn.yolo.train",
+]
 
 [[tool.uv.dependency-metadata]]
 name = "chumpy"

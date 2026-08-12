@@ -7,22 +7,33 @@ package.
 
 ## Launch
 
+The complete Host + simulation launch is documented in the [runtime guide](../../README.md). To start only this MuJoCo
+application package:
+
 ```bash
-cd /path/to/public_archive
-runtime/scripts/build.sh
 source runtime/scripts/setup_env.sh
 ros2 launch arm_exchange_sim arm_exchange_sim.launch.py
 ```
-
-The build script forces `/usr/bin/python3` so ament does not select a Conda
-Python without the ROS 2 build dependencies. Core algorithms and configuration
-are installed as `arm_exchange_core`; the generic MuJoCo runtime is installed
-as `mujoco_engine`.
 
 Model assets are package-local under `arm_exchange_sim/model/model`, matching
 the current ROS2 simulation packaging style. The ROS2 sim model may
 intentionally diverge from the repository-level `model/` assets as the exchange
 scene evolves.
+
+## Application Plugins
+
+The package supplies the task-specific plugins loaded by `mujoco_engine`:
+
+| Plugin | Responsibility |
+| --- | --- |
+| `CameraMountPlugin` | Applies the reduced parallel-linkage kinematics to the simulated camera-mount mocap body. |
+| `ArmExchangeTfPlugin` | Publishes the world, chassis, arm, station and camera TF relationships. |
+| `ArmPlugin` | Emulates lower-controller authority, arm feedback and torque control for Host trajectories. |
+| `OperatorLogicPlugin` | Converts raw operator input into simulated control frames, chassis motion and camera control. |
+| `StationPlugin` | Applies validated exchange-station rule variables to MuJoCo joints and actuators. |
+
+All five plugins execute inside the single `mujoco_simulator` ROS node. Their order in `simulation_config.yaml` is also
+their order in the per-step callback sequence.
 
 ## Runtime Interfaces
 
@@ -53,11 +64,9 @@ scene evolves.
 Run the raw-input node in a separate terminal:
 
 ```bash
-cd /path/to/public_archive
 source runtime/scripts/setup_env.sh
 ros2 run arm_exchange_sim operator_input --ros-args \
-  -p keyboard_device:=/dev/input/by-path/platform-i8042-serio-0-event-kbd \
-  -p mouse_device:=/dev/input/by-id/usb-INSTANT_USB_GAMING_MOUSE-event-mouse
+  -p keyboard_device:=/dev/input/by-path/platform-i8042-serio-0-event-kbd
 ```
 
 Key map:
@@ -74,14 +83,58 @@ Key map:
 
 The input node reads Linux `/dev/input/event*` directly, then publishes
 `/operator/input_state` at `publish_rate` Hz. Keyboard fields are current held
-states; mouse fields are relative-motion deltas accumulated during the current
-publish period. If the device cannot be opened, make sure the current user is in
+states. Raw mouse events are not used by the operator-control path. If the device cannot be opened, make sure the current user is in
 the `input` group and start a new login session.
 
 Left and right second-camera views use independent MuJoCo yaw/pitch joints.
 Pressing `c` switches the active view; `h/j/k/l` then adjusts only that view.
 
-## Camera Frame Note
+## Coordinate Frames
+
+The current simulation publishes the following TF tree. Solid edges vary during simulation; dashed edges are fixed
+after startup.
+
+```mermaid
+flowchart TD
+  world["mujoco_world"] --> base["base_link"]
+  world --> station["exchange_station (E)"]
+  base -. identity .-> chassis["chassis"]
+  chassis -. "Rz(pi)" .-> arm["arm_base (b)"]
+  arm --> reduced["camera_reduced_frame"]
+
+  reduced -. fixed mount offset .-> lm["second_camera_left_mount"]
+  reduced -. fixed mount offset .-> rm["second_camera_right_mount"]
+  lm --> ll["second_camera_left_link"]
+  rm --> rl["second_camera_right_link"]
+  ll -. camera convention .-> lo["second_camera_left_optical (cL)"]
+  rl -. camera convention .-> ro["second_camera_right_optical (cR)"]
+```
+
+`mujoco_world -> base_link` follows the chassis body, and `mujoco_world -> exchange_station` follows the station body.
+`base_link -> chassis` is identity in the public scene; `chassis -> arm_base` applies the fixed axis convention used by
+the arm model. Planning, FK/IK and the perception output all use `arm_base` as their root frame. PnP first estimates
+the station pose in the active optical frame, then the perception node uses TF to publish that pose in `arm_base`.
+
+### Parallel Camera Linkage
+
+The camera mount is mechanically coupled to the first two arm joints through a parallel linkage. It therefore cannot
+be represented as a simple fixed camera transform or as an ordinary serial continuation of the six-joint DH chain.
+`camera_reduced_frame` is a virtual reduced frame computed from joint 1 and joint 2: its position follows the linkage
+endpoint, while its orientation compensates the parallel mechanism. The fixed transform from this reduced frame to
+each camera mount is then composed with the camera's own yaw/pitch joints and optical-frame convention.
+
+In simulation, the reduced kinematics come from `ArmModel`, and the remaining mount/link offsets are measured directly
+from the MuJoCo model at startup. On the physical robot, manufacturing tolerances, linkage geometry, camera mounting
+and encoder zero offsets make these transforms machine-specific. We therefore use a dedicated hand-eye calibration
+procedure that fits the camera relation against arm joint states instead of treating the camera as a fixed rigid body
+on one serial link.
+
+The physical hand-eye calibration script and its collected calibration data are **not included in the current public
+release**. The repository publishes the simulation TF implementation and the runtime interface only. Users adapting
+the stack to another robot must provide their own calibrated parallel-linkage camera model and fixed optical
+extrinsics; copying the simulation offsets into a real deployment is not valid.
+
+### Optical Convention
 
 Perception treats `/second_camera_*` images and `CameraInfo` as OpenCV optical
 frames: x right, y down, z forward. The sim publishes an explicit
@@ -128,7 +181,6 @@ before writing the corresponding MuJoCo `level_*` joints.
 Run the curses-based station panel in a separate terminal:
 
 ```bash
-cd /path/to/public_archive
 source runtime/scripts/setup_env.sh
 ros2 run arm_exchange_sim station_panel
 ```
