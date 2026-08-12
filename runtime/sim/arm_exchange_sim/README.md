@@ -160,6 +160,7 @@ flowchart TD
     frame6 -. "configured tool offset" .-> tcp["current TCP (t)"]
     reference -. "task state and roll" .-> task["moving task frame (s)"]
     task -. "fixed tool transform" .-> target["target TCP frame (t)"]
+    tcp -. "tracking error" .-> target
   end
 
   station_gt -. "same station / estimated reference" .-> reference
@@ -187,7 +188,9 @@ the continuously broadcast simulation ground-truth frame.
 `frame 6`, is offset by the configured `tcp_offset_6_tcp` to obtain the current tool-center-point frame `t`. Neither
 `frame 6` nor TCP is currently broadcast as a ROS TF frame. For Type III planning, the active reference `E` anchors a
 moving task frame `s`; assembly state, roll and the fixed tool relation determine the target TCP pose. This is a task
-constraint evaluated by the planner, not a second TF parent chain for the physical TCP.
+constraint evaluated by the planner, not a second TF parent chain for the physical TCP. The dotted connection between
+the current and target TCP frames denotes the tracking error compared by the controller, rather than another frame
+transform in the kinematic tree.
 
 Using the transform notation from the technical report, the current TCP pose and the Type III target pose are related
 by
