@@ -65,9 +65,13 @@ Run the raw-input node in a separate terminal:
 
 ```bash
 source runtime/scripts/setup_env.sh
+export KEYBOARD_DEVICE=/path/to/the/keyboard-event-device
 ros2 run arm_exchange_sim operator_input --ros-args \
-  -p keyboard_device:=/dev/input/by-path/platform-i8042-serio-0-event-kbd
+  -p keyboard_device:="$KEYBOARD_DEVICE"
 ```
+
+The path is intentionally machine-specific. Device discovery and `input`-group permission setup are documented in the
+[runtime launch guide](../../README.md#launch).
 
 Key map:
 
@@ -83,37 +87,79 @@ Key map:
 
 The input node reads Linux `/dev/input/event*` directly, then publishes
 `/operator/input_state` at `publish_rate` Hz. Keyboard fields are current held
-states. Raw mouse events are not used by the operator-control path. If the device cannot be opened, make sure the current user is in
-the `input` group and start a new login session.
+states. Raw mouse events are not used by the operator-control path.
 
 Left and right second-camera views use independent MuJoCo yaw/pitch joints.
 Pressing `c` switches the active view; `h/j/k/l` then adjusts only that view.
 
 ## Coordinate Frames
 
-The current simulation publishes the following TF tree. Solid edges vary during simulation; dashed edges are fixed
-after startup.
+The coordinate model contains both ROS TF frames and frames used only inside perception, FK and planning. Blue nodes in
+the diagram are broadcast through `/tf` or `/tf_static`; orange nodes are computed algorithmically and are not
+additional TF children. Solid TF edges vary during simulation, while dashed TF edges are fixed after startup.
 
 ```mermaid
 flowchart TD
-  world["mujoco_world"] --> base["base_link"]
-  world --> station["exchange_station (E)"]
-  base -. identity .-> chassis["chassis"]
-  chassis -. "Rz(pi)" .-> arm["arm_base (b)"]
-  arm --> reduced["camera_reduced_frame"]
+  subgraph tf["ROS TF tree"]
+    world["mujoco_world"] --> base["base_link"]
+    world --> station_gt["exchange_station<br/>simulation ground truth"]
+    base -. identity .-> chassis["chassis"]
+    chassis -. "Rz(pi)" .-> arm["arm_base (b)"]
+    arm --> reduced["camera_reduced_frame"]
+    reduced -. fixed mount offset .-> lm["second_camera_left_mount"]
+    reduced -. fixed mount offset .-> rm["second_camera_right_mount"]
+    lm --> ll["second_camera_left_link"]
+    rm --> rl["second_camera_right_link"]
+    ll -. optical convention .-> lo["second_camera_left_optical (cL)"]
+    rl -. optical convention .-> ro["second_camera_right_optical (cR)"]
+  end
 
-  reduced -. fixed mount offset .-> lm["second_camera_left_mount"]
-  reduced -. fixed mount offset .-> rm["second_camera_right_mount"]
-  lm --> ll["second_camera_left_link"]
-  rm --> rl["second_camera_right_link"]
-  ll -. camera convention .-> lo["second_camera_left_optical (cL)"]
-  rl -. camera convention .-> ro["second_camera_right_optical (cR)"]
+  subgraph model["Perception, FK and task model"]
+    optical["active optical frame (c)"] -. "PnP observation" .-> reference["active assembly reference (E)"]
+    arm_model["arm_base (b)"] -. "FK(q)" .-> frame6["DH frame 6"]
+    frame6 -. "configured tool offset" .-> tcp["current TCP (t)"]
+    reference -. "task state / progress" .-> task["moving task frame (s)"]
+    task -. "roll and tool relation" .-> target["target TCP pose (t)"]
+  end
+
+  lo -. "selected camera" .-> optical
+  ro -. "selected camera" .-> optical
+  arm -. "TF composition" .-> arm_model
+
+  classDef tfFrame fill:#eef6ff,stroke:#3973ac,color:#111;
+  classDef modelFrame fill:#fff2cc,stroke:#c58a00,color:#111;
+  class world,base,station_gt,chassis,arm,reduced,lm,rm,ll,rl,lo,ro tfFrame;
+  class optical,reference,arm_model,frame6,tcp,task,target modelFrame;
 ```
 
 `mujoco_world -> base_link` follows the chassis body, and `mujoco_world -> exchange_station` follows the station body.
 `base_link -> chassis` is identity in the public scene; `chassis -> arm_base` applies the fixed axis convention used by
-the arm model. Planning, FK/IK and the perception output all use `arm_base` as their root frame. PnP first estimates
-the station pose in the active optical frame, then the perception node uses TF to publish that pose in `arm_base`.
+the arm model. Planning, FK/IK and the perception output all use `arm_base` as their root frame.
+
+The simulation `exchange_station` TF is ground truth for visualization and debugging. Online planning instead consumes
+an active assembly reference `E`: PnP estimates `E` in the selected optical frame `c`, and TF composition expresses
+that observation in `arm_base` (`b`). The task node may later reconstruct this active reference from current FK after an
+operator-confirmed stage. It is therefore a planning value carried in `PoseStamped`, not necessarily the same object as
+the continuously broadcast simulation ground-truth frame.
+
+`ArmModel.forward_kinematics()` computes the six DH link frames internally. The final DH frame, referred to as
+`frame 6`, is offset by the configured `tcp_offset_6_tcp` to obtain the current tool-center-point frame `t`. Neither
+`frame 6` nor TCP is currently broadcast as a ROS TF frame. For Type III planning, the active reference `E` anchors a
+moving task frame `s`; assembly state, roll and the fixed tool relation determine the target TCP pose. This is a task
+constraint evaluated by the planner, not a second TF parent chain for the physical TCP.
+
+Using the transform notation from the technical report, the current TCP pose and the Type III target pose are related
+by
+
+```text
+T_b,t(q)      = T_b,6(q) T_6,t
+T_b,t(target) = T_b,E T_E,s(state, roll) T_s,t
+```
+
+Here `T_b,6(q)` comes from the six-link DH forward kinematics, `T_6,t` is the configured frame-6-to-TCP tool offset,
+and `T_b,E` is the active assembly reference. `T_E,s` describes the moving task frame at the current assembly state and
+roll. In the published planner, the fixed `T_s,t` relation is incorporated into the task geometry used to construct the
+target TCP pose.
 
 ### Parallel Camera Linkage
 
@@ -146,6 +192,20 @@ real `second_camera_*_link` is currently an optical-frame alias, not a physical
 camera-body frame. If that link is later redefined as a physical frame, the
 virtual-gimbal image generation must apply the corresponding fixed
 `link -> optical` rotation before publishing images with the optical frame id.
+
+### Virtual Gimbal
+
+The physical design uses fisheye cameras to obtain a wide field of view without mechanically steering the camera.
+A virtual-gimbal frontend calibrates the fisheye projection, selects a viewing direction, and reprojects the relevant
+rays into a conventional pinhole image. The resulting image and `CameraInfo` use the OpenCV optical convention expected
+by the keypoint and PnP pipeline. Camera switching and virtual viewing direction are controlled through the same gimbal
+control interface represented by the simulation's yaw/pitch camera joints.
+
+The fisheye calibration, reprojection implementation and physical camera transport are **not included in this public
+release**. The MuJoCo backend directly renders equivalent pinhole views and publishes the same image, calibration and
+frame interfaces, allowing the public Host nodes to exercise the perception and task pipeline without the real camera
+stack. A physical integration must provide its own calibrated virtual-gimbal or pinhole-camera frontend while
+preserving those ROS contracts.
 
 ## Debug Commands
 

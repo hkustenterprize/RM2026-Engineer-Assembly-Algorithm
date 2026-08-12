@@ -23,6 +23,21 @@ the real-hardware backend is still being organized.
 
 All relative paths and commands in the documentation assume that the current working directory is the repository root.
 
+## Environments
+
+The runtime, neural-network training and Blender rendering workflows use separate Python environments. Their
+dependencies should not be installed into one shared environment:
+
+| Workflow | Environment | Setup guide |
+| --- | --- | --- |
+| ROS 2 Host and MuJoCo runtime | ROS 2 Humble system Python at `/usr/bin/python3` | [Runtime setup](runtime/README.md#environment-setup) |
+| YOLO and LiteHRNet training, inference and export | Python 3.10 virtual environment managed by `uv` under `src/nn/.venv` | [Neural-network environment](src/nn/README.md#环境要求) |
+| Blender scene rendering | Blender 4.5.0 bundled Python 3.11 | [Blender environment](src/blender/README.md#环境) |
+
+Blender rendering runs inside Blender's bundled Python. Dataset composition and annotation visualization run after
+rendering and reuse the `src/nn` `uv` environment; they do not run inside Blender. Likewise, the ROS 2 runtime uses
+the system Python selected by the ROS installation and must not be launched from the training virtual environment.
+
 ## Documentation
 
 - Start with the [runtime setup and launch guide](runtime/README.md) to run the complete ROS 2 + MuJoCo workflow.

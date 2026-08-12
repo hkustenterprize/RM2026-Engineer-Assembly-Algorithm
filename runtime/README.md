@@ -65,6 +65,20 @@ application plugins hosted inside that node, not additional ROS graph nodes. `ar
 is started only when `enable_perception:=true`; `operator_input` is likewise controlled by
 `enable_operator_input:=true`. The planning and task nodes are always started by `sim_host.launch.py`.
 
+### Backend Boundary
+
+The Host nodes depend on ROS interfaces rather than MuJoCo APIs. The backend supplies camera images and calibration,
+TF, joint and lower-controller feedback, operator events, and a trajectory execution endpoint. The public release
+implements this contract only through `mujoco_simulator`. Physical camera drivers, the virtual-gimbal implementation,
+encoder/MCU transport and real actuator interfaces are not included.
+
+This boundary follows the simulation/real-backend separation described in the technical report. A physical deployment
+can retain the published perception, planning and task nodes and replace the simulation side with robot-specific ROS
+publishers and subscribers. Such an adapter must preserve the documented topic types, frame conventions, units,
+timestamps and control-authority semantics; it must also provide calibrated camera and parallel-linkage transforms.
+The abstraction makes a real backend straightforward to integrate, but it does not make simulation calibration or
+controller parameters valid for physical hardware.
+
 The request/result topics between task and planning are separated into approach, Type III and recovery message pairs.
 The diagram groups them to preserve the algorithm-level structure used in the technical report. To inspect every topic
 and generated helper node in a running system, install the optional ROS visualization package and open the live graph:
@@ -170,18 +184,49 @@ The build includes five packages: `arm_exchange_interfaces`, `arm_exchange_core`
 ## Launch
 
 For the normal interactive workflow, start perception, operator input and the simulation together. A readable Linux
-keyboard event device is required:
+keyboard event device is required. First identify the keyboard:
+
+```bash
+ls -l /dev/input/by-id /dev/input/by-path
+sudo apt install evtest
+sudo evtest
+```
+
+Prefer a stable `by-id` or `by-path` entry when one is available. Otherwise, use the corresponding `/dev/input/eventN`
+entry reported by `evtest`; `eventN` is an example placeholder rather than a fixed device name.
+
+The current user needs read access to the selected device. On distributions that provide the `input` group, grant
+membership once:
+
+```bash
+sudo usermod -aG input "$USER"
+```
+
+Log out of the desktop session completely and log back in before verifying the new membership and device permission:
+
+```bash
+export KEYBOARD_DEVICE=/path/to/the/keyboard-event-device
+id -nG | tr ' ' '\n' | grep '^input$'
+test -r "$KEYBOARD_DEVICE" && echo "keyboard device is readable"
+```
+
+Replace `/path/to/the/keyboard-event-device` with the path identified above. The variable is intentionally set after
+the new login session begins.
+
+Group membership takes effect only in a new login session. Avoid running the complete ROS launch with `sudo`; doing so
+changes the ROS and Python environments and grants unnecessary privileges to every node.
+
+Then launch the interactive stack:
 
 ```bash
 ros2 launch arm_exchange_host sim_host.launch.py \
   enable_perception:=true \
   enable_operator_input:=true \
-  keyboard_device:=/dev/input/by-path/platform-i8042-serio-0-event-kbd
+  keyboard_device:="$KEYBOARD_DEVICE"
 ```
 
-Replace the keyboard path with the event device present on the target machine. The current user must have read
-permission, usually through the `input` group. Raw mouse events are not part of the operator interface; all task and
-camera controls use the keyboard map documented in the simulation guide.
+Raw mouse events are not part of the operator interface; all task and camera controls use the keyboard map documented
+in the simulation guide.
 
 For a non-interactive core smoke test, perception and operator input may be omitted:
 
